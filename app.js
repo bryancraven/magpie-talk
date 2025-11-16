@@ -429,6 +429,10 @@ class UIController {
         this.timerInterval = null;
         this.syllableCache = []; // Cache syllable elements for performance
 
+        // Progressive rendering: Track pending promise to prevent race conditions
+        this.pendingFullArticlePromise = null;
+        this.pendingPromiseCancelled = false;
+
         this.initElements();
         this.attachEventListeners();
         this.loadFeaturedArticleOnInit();
@@ -525,6 +529,9 @@ class UIController {
 
     async loadFeaturedArticle() {
         try {
+            // Cancel any pending full article promise from previous loads
+            this.pendingPromiseCancelled = true;
+
             this.showLoading(true, 'Loading featured article...');
             this.clearError();
             this.disableLoadButtons(true);
@@ -540,12 +547,21 @@ class UIController {
 
             // Handle progressive rendering: if full article is loading in background, update when ready
             if (article._fullArticlePromise) {
+                // Reset cancellation flag for this new promise
+                this.pendingPromiseCancelled = false;
+                this.pendingFullArticlePromise = article._fullArticlePromise;
+
                 article._fullArticlePromise.then(fullArticle => {
-                    // Update the article with full text while preserving play state
-                    this.updateArticleContent(fullArticle);
+                    // Only update if this promise wasn't cancelled (e.g., by loading a different article)
+                    if (!this.pendingPromiseCancelled) {
+                        // Update the article with full text while preserving play state
+                        this.updateArticleContent(fullArticle);
+                    }
                 }).catch(error => {
                     // Silently fail - keep showing extract
-                    console.warn('Progressive article update failed:', error);
+                    if (!this.pendingPromiseCancelled) {
+                        console.warn('Progressive article update failed:', error);
+                    }
                 });
             }
         } catch (error) {
@@ -560,6 +576,9 @@ class UIController {
     async loadArticleByTitle(input) {
         const originalButtonText = this.elements.loadCustomBtn.textContent;
         try {
+            // Cancel any pending full article promise from featured article load
+            this.pendingPromiseCancelled = true;
+
             this.showLoading(true, 'Loading article...');
             this.clearError();
             this.disableLoadButtons(true);
@@ -691,9 +710,11 @@ class UIController {
             return; // Keep existing content if parsing fails
         }
 
-        // Preserve current play state
+        // Preserve FULL play state: position, elapsed time, pause status
         const wasPlaying = this.engine && this.engine.isPlaying;
+        const wasPaused = this.engine && this.engine.isPaused;
         const currentIndex = this.engine ? this.engine.currentIndex : 0;
+        const elapsedTime = this.engine ? (this.engine.pausedTime || 0) : 0;
 
         // Stop current engine
         if (this.engine) {
@@ -706,11 +727,22 @@ class UIController {
         // Re-render with new syllables
         const articleDiv = this.elements.articleContent;
 
-        // Find and replace just the article-text paragraph, keep the intro
+        // Remove BOTH intro and content from previous render to prevent duplication
         const textParagraph = articleDiv.querySelector('.article-text');
+        const introParagraph = articleDiv.querySelector('.article-intro');
+
         if (textParagraph) {
             textParagraph.remove();
         }
+        if (introParagraph) {
+            introParagraph.remove();
+        }
+
+        // Re-add intro text
+        const introText = document.createElement('p');
+        introText.className = 'article-intro';
+        introText.innerHTML = `<em>Featured article of the day: <a href="${updatedArticle.url}" target="_blank" class="article-source-link">source</a></em>`;
+        articleDiv.appendChild(introText);
 
         const mainContent = document.createElement('p');
         mainContent.className = 'article-text';
@@ -747,12 +779,26 @@ class UIController {
             onComplete: () => this.onPracticeComplete()
         });
 
-        // Restore play state
-        if (wasPlaying) {
-            this.engine.start();
-            this.startTimer();
-            this.elements.startBtn.disabled = true;
-            this.elements.pauseBtn.disabled = false;
+        // Restore play state with full state preservation
+        if (wasPlaying || wasPaused) {
+            // Restore position in new syllabl list (limit to valid range)
+            this.engine.currentIndex = Math.min(currentIndex, syllables.length - 1);
+            this.engine.pausedTime = elapsedTime;
+
+            if (wasPlaying) {
+                // Re-start playing from preserved position
+                this.engine.start();
+                this.startTimer();
+                this.elements.startBtn.disabled = true;
+                this.elements.pauseBtn.disabled = false;
+            } else if (wasPaused) {
+                // Preserve paused state without starting
+                this.engine.isPaused = true;
+                this.elements.startBtn.disabled = false;
+                this.elements.pauseBtn.disabled = false;
+                // Highlight the current syllable to show position
+                this.highlightSyllable(this.engine.currentIndex);
+            }
         } else {
             this.elements.startBtn.disabled = false;
             this.elements.pauseBtn.disabled = true;
