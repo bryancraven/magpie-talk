@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magpie Talk - Speech Practice</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Prevent flash of unstyled content by setting theme early
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div class="header-title">
+                    <pre class="mascot">
+   &lt;o~}
+   /|\\~~~
+    / \
+ </pre>
+                    <h1>Magpie Talk</h1>
+                    <p class="tagline">Practice prolonged speech with paced articles</p>
+                </div>
+            </div>
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </header>
+
+        <!-- Article Loader -->
+        <section class="article-loader">
+            <button id="loaderToggle" class="loader-toggle" aria-expanded="false" aria-controls="loaderContent">Load different article</button>
+
+            <div id="loaderContent" class="loader-content hidden">
+                <p class="loader-header"><em>Featured article loaded, or paste a Wikipedia link below:</em></p>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="articleInput"
+                        placeholder="Article title or URL"
+                        class="article-input"
+                        autocomplete="off"
+                    >
+                    <button id="loadCustomBtn" class="btn btn-primary">Load Article</button>
+                </div>
+                <div id="articleTitle" class="article-title"></div>
+                <div id="loadingIndicator" class="loading-indicator hidden" role="status" aria-live="polite" aria-atomic="true">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading article...</div>
+                    <div class="loading-progress-bar">
+                        <div class="loading-progress-fill"></div>
+                    </div>
+                </div>
+                <div id="errorMessage" class="error-message hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+            </div>
+        </section>
+
+        <!-- Article Content Display -->
+        <section class="article-section">
+            <div id="articleContent" class="article-content"></div>
+        </section>
+
+        <!-- Control Panel -->
+        <section class="control-panel">
+            <div class="timer-section">
+                <div class="timer" id="timer">00:00</div>
+                <p class="timer-label">Elapsed Time</p>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary" disabled aria-label="Start syllable practice">Start</button>
+                <button id="pauseBtn" class="btn btn-secondary" disabled aria-label="Pause or resume practice">Pause</button>
+                <button id="resetBtn" class="btn btn-secondary" aria-label="Reset practice to beginning">Reset</button>
+            </div>
+
+            <div class="settings">
+                <label for="speedControl">Syllable Duration (ms):</label>
+                <input
+                    type="range"
+                    id="speedControl"
+                    min="500"
+                    max="2000"
+                    value="1000"
+                    step="100"
+                    class="slider"
+                >
+                <span id="speedValue">1000ms</span>
+            </div>
+        </section>
+
+        <!-- Progress Indicator -->
+        <div class="progress-info" id="progressInfo" role="status" aria-live="polite" aria-atomic="true"></div>
+
+        <!-- Footer Disclaimer -->
+        <footer class="footer-disclaimer">
+            <p>Magpie Talk is a personal speech-practice tool inspired by evidence-based fluency-shaping research<sup><a href="https://scholar.google.com/scholar?q=Brignell+systematic+review+interventions+adults+stutter" target="_blank" class="citation-link">[1]</a></sup><sup><a href="https://scholar.google.com/scholar?q=Packman+prolonged+speech+modification+stuttering" target="_blank" class="citation-link">[2]</a></sup><sup><a href="https://scholar.google.com/scholar?q=Blomgren+behavioral+treatments+children+adults+stutter" target="_blank" class="citation-link">[3]</a></sup>. It is not clinical treatment, and I am not a clinician. I built this because I personally find prolonged-speech practice helpful. For assessment or therapy, please consult a certified speech-language pathologist.</p>
+        </footer>
+    </div>
+
+    <!-- Load Hypher library from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hypher/0.2.5/hypher.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hypher/0.2.5/patterns/en-us.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
