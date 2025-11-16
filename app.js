@@ -528,11 +528,12 @@ class UIController {
     }
 
     async loadFeaturedArticle() {
+        const loadingStartTime = Date.now();
         try {
             // Cancel any pending full article promise from previous loads
             this.pendingPromiseCancelled = true;
 
-            this.showLoading(true, 'Loading featured article...');
+            this.showLoading(true, 'Fetching article...');
             this.clearError();
             this.disableLoadButtons(true);
 
@@ -543,7 +544,7 @@ class UIController {
                 today.getDate()
             );
 
-            this.displayArticle(article);
+            await this.displayArticle(article);
 
             // Handle progressive rendering: if full article is loading in background, update when ready
             if (article._fullArticlePromise) {
@@ -551,11 +552,11 @@ class UIController {
                 this.pendingPromiseCancelled = false;
                 this.pendingFullArticlePromise = article._fullArticlePromise;
 
-                article._fullArticlePromise.then(fullArticle => {
+                article._fullArticlePromise.then(async fullArticle => {
                     // Only update if this promise wasn't cancelled (e.g., by loading a different article)
                     if (!this.pendingPromiseCancelled) {
                         // Update the article with full text while preserving play state
-                        this.updateArticleContent(fullArticle);
+                        await this.updateArticleContent(fullArticle);
                     }
                 }).catch(error => {
                     // Silently fail - keep showing extract
@@ -568,18 +569,24 @@ class UIController {
             this.showError(`Error loading featured article: ${error.message}`);
             console.error(error);
         } finally {
+            // Ensure loading indicator shows for at least 150ms for visibility
+            const elapsed = Date.now() - loadingStartTime;
+            if (elapsed < 150) {
+                await new Promise(resolve => setTimeout(resolve, 150 - elapsed));
+            }
             this.showLoading(false);
             this.disableLoadButtons(false);
         }
     }
 
     async loadArticleByTitle(input) {
+        const loadingStartTime = Date.now();
         const originalButtonText = this.elements.loadCustomBtn.textContent;
         try {
             // Cancel any pending full article promise from featured article load
             this.pendingPromiseCancelled = true;
 
-            this.showLoading(true, 'Loading article...');
+            this.showLoading(true, 'Fetching article...');
             this.clearError();
             this.disableLoadButtons(true);
             this.elements.loadCustomBtn.textContent = 'Loading...';
@@ -597,18 +604,70 @@ class UIController {
             }
 
             const article = await WikipediaService.getArticleByTitle(title);
-            this.displayArticle(article);
+            await this.displayArticle(article);
         } catch (error) {
             this.showError(`Error loading article: ${error.message}`);
             console.error(error);
         } finally {
+            // Ensure loading indicator shows for at least 150ms for visibility
+            const elapsed = Date.now() - loadingStartTime;
+            if (elapsed < 150) {
+                await new Promise(resolve => setTimeout(resolve, 150 - elapsed));
+            }
             this.showLoading(false);
             this.disableLoadButtons(false);
             this.elements.loadCustomBtn.textContent = originalButtonText;
         }
     }
 
-    displayArticle(article) {
+    async renderSyllablesAsync(wordMap, parentElement) {
+        // Render syllables in chunks to prevent UI blocking
+        // This allows the browser to paint loading indicators and remain responsive
+        const CHUNK_SIZE = 150; // Process 150 syllables per frame
+        let fragment = document.createDocumentFragment();
+        let syllableCount = 0;
+
+        for (let i = 0; i < wordMap.length; i++) {
+            const wordInfo = wordMap[i];
+
+            // Create syllable spans for this word
+            wordInfo.syllables.forEach((syllable, syllableIdx) => {
+                const globalIndex = wordInfo.startIndex + syllableIdx;
+                const syllSpan = document.createElement('span');
+                syllSpan.className = 'syllable';
+                syllSpan.textContent = syllable;
+                syllSpan.dataset.index = globalIndex;
+                fragment.appendChild(syllSpan);
+                // Cache the syllable element for fast access
+                this.syllableCache[globalIndex] = syllSpan;
+                syllableCount++;
+            });
+
+            // Add original following punctuation/spacing
+            if (wordInfo.following) {
+                fragment.appendChild(document.createTextNode(wordInfo.following));
+            }
+
+            // Yield to browser every CHUNK_SIZE syllables to allow painting
+            if (syllableCount >= CHUNK_SIZE) {
+                // Append current chunk to DOM (fragment automatically empties itself)
+                parentElement.appendChild(fragment);
+                // Create new fragment for next chunk
+                fragment = document.createDocumentFragment();
+                syllableCount = 0;
+
+                // Yield control to browser to paint and remain responsive
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+        }
+
+        // Append any remaining syllables
+        if (fragment.hasChildNodes()) {
+            parentElement.appendChild(fragment);
+        }
+    }
+
+    async displayArticle(article) {
         // Stop any active practice and timer before loading new article
         if (this.engine) {
             this.engine.stop();
@@ -626,6 +685,9 @@ class UIController {
         this.articleContent = article;
         this.elements.articleTitle.textContent = article.title;
 
+        // Show parsing indicator
+        this.showLoading(true, 'Parsing syllables...');
+
         // Parse text into syllables with word mapping
         const parsed = this.parser.parse(article.text);
         const { syllables, wordMap } = parsed;
@@ -635,8 +697,12 @@ class UIController {
             this.elements.articleContent.innerHTML = '';
             this.elements.articleTitle.textContent = '';
             this.showError('Could not parse syllables from article. Please try another article.');
+            this.showLoading(false);
             return;
         }
+
+        // Update loading message
+        this.showLoading(true, `Rendering ${syllables.length.toLocaleString()} syllables...`);
 
         // Create display with natural word flowing
         const articleDiv = this.elements.articleContent;
@@ -655,29 +721,9 @@ class UIController {
         // Clear syllable cache for new article
         this.syllableCache = [];
 
-        // Use DocumentFragment to batch DOM operations for better performance
-        const fragment = document.createDocumentFragment();
+        // Render syllables asynchronously
+        await this.renderSyllablesAsync(wordMap, mainContent);
 
-        wordMap.forEach((wordInfo) => {
-            // Create syllable spans for this word (they will flow naturally)
-            wordInfo.syllables.forEach((syllable, syllableIdx) => {
-                const globalIndex = wordInfo.startIndex + syllableIdx;
-                const syllSpan = document.createElement('span');
-                syllSpan.className = 'syllable';
-                syllSpan.textContent = syllable;
-                syllSpan.dataset.index = globalIndex;
-                fragment.appendChild(syllSpan);
-                // Cache the syllable element for fast access
-                this.syllableCache[globalIndex] = syllSpan;
-            });
-
-            // Add original following punctuation/spacing (e.g., ", ", ".", " ", etc.)
-            if (wordInfo.following) {
-                fragment.appendChild(document.createTextNode(wordInfo.following));
-            }
-        });
-
-        mainContent.appendChild(fragment);
         articleDiv.appendChild(mainContent);
 
         // Initialize pacing engine
@@ -694,7 +740,7 @@ class UIController {
         this.updateProgressInfo();
     }
 
-    updateArticleContent(updatedArticle) {
+    async updateArticleContent(updatedArticle) {
         // Progressive rendering: update article content while preserving play state
         // This is called when the full article arrives after showing the extract
 
@@ -709,6 +755,24 @@ class UIController {
         if (syllables.length === 0) {
             return; // Keep existing content if parsing fails
         }
+
+        // Optimization: Skip update if the new article isn't significantly longer
+        // This prevents unnecessary re-rendering when extract is already substantial
+        const currentSyllableCount = this.engine ? this.engine.syllables.length : 0;
+        const newSyllableCount = syllables.length;
+        const increasePercentage = ((newSyllableCount - currentSyllableCount) / currentSyllableCount) * 100;
+
+        // Only update if new article has at least 20% more syllables (significant content addition)
+        if (currentSyllableCount > 0 && increasePercentage < 20) {
+            console.log(`Skipping progressive update: only ${increasePercentage.toFixed(1)}% more content`);
+            return;
+        }
+
+        // Show loading indicator during update
+        this.showLoading(true, 'Loading full article...');
+
+        // Update loading message
+        this.showLoading(true, `Rendering ${syllables.length.toLocaleString()} syllables...`);
 
         // Preserve FULL play state: position, elapsed time, pause status
         const wasPlaying = this.engine && this.engine.isPlaying;
@@ -750,26 +814,9 @@ class UIController {
         // Clear old cache and build new one
         this.syllableCache = [];
 
-        // Use DocumentFragment for efficient rendering
-        const fragment = document.createDocumentFragment();
+        // Render syllables asynchronously
+        await this.renderSyllablesAsync(wordMap, mainContent);
 
-        wordMap.forEach((wordInfo) => {
-            wordInfo.syllables.forEach((syllable, syllableIdx) => {
-                const globalIndex = wordInfo.startIndex + syllableIdx;
-                const syllSpan = document.createElement('span');
-                syllSpan.className = 'syllable';
-                syllSpan.textContent = syllable;
-                syllSpan.dataset.index = globalIndex;
-                fragment.appendChild(syllSpan);
-                this.syllableCache[globalIndex] = syllSpan;
-            });
-
-            if (wordInfo.following) {
-                fragment.appendChild(document.createTextNode(wordInfo.following));
-            }
-        });
-
-        mainContent.appendChild(fragment);
         articleDiv.appendChild(mainContent);
 
         // Create new pacing engine with updated syllables
@@ -806,6 +853,7 @@ class UIController {
 
         this.elements.resetBtn.disabled = false;
         this.updateProgressInfo();
+        this.showLoading(false);
     }
 
     highlightSyllable(index) {
