@@ -64,27 +64,36 @@ class WikipediaService {
         const data = await response.json();
         const article = data.tfa;
 
-        // Check if the featured article response includes extract/description
-        // If it has substantial text (>800 chars), use it; otherwise fetch full article
-        let fullArticle;
+        // Create extract article immediately for progressive rendering
+        const extractArticle = {
+            title: article.title,
+            text: article.extract,
+            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title)}`
+        };
+
+        // Check if the extract is substantial (>800 chars)
         if (article.extract && article.extract.length > 800) {
-            console.log(`[PERF] Using extract from featured article response (${article.extract.length} chars)`);
-            fullArticle = {
-                title: article.title,
-                text: article.extract,
-                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title)}`
-            };
+            // Extract is large enough, use it as-is
+            this.setCachedItem(cacheKey, extractArticle, 86400000);
+            return extractArticle;
         } else {
-            console.log('[PERF] Extract too small, fetching full article in parallel');
-            // Get the title from featured article, then fetch the full article text
-            // Start the fetch immediately while we still have control
-            fullArticle = await this.getArticleByTitle(article.title);
+            // Extract is too small - show it immediately, then fetch full article in background
+            // Set up background fetch for full article (will be handled by UIController)
+            const fullArticlePromise = this.getArticleByTitle(article.title)
+                .then(fullArticle => {
+                    // Cache the full article for next time
+                    this.setCachedItem(cacheKey, fullArticle, 86400000);
+                    return fullArticle;
+                })
+                .catch(error => {
+                    console.warn('Failed to fetch full article, keeping extract:', error);
+                    return extractArticle; // Fallback to extract if full article fails
+                });
+
+            // Return extract immediately with promise for full article
+            extractArticle._fullArticlePromise = fullArticlePromise;
+            return extractArticle;
         }
-
-        // Cache for 24 hours (86400000 ms)
-        this.setCachedItem(cacheKey, fullArticle, 86400000);
-
-        return fullArticle;
     }
 
     static async getArticleByTitle(title) {
@@ -528,6 +537,17 @@ class UIController {
             );
 
             this.displayArticle(article);
+
+            // Handle progressive rendering: if full article is loading in background, update when ready
+            if (article._fullArticlePromise) {
+                article._fullArticlePromise.then(fullArticle => {
+                    // Update the article with full text while preserving play state
+                    this.updateArticleContent(fullArticle);
+                }).catch(error => {
+                    // Silently fail - keep showing extract
+                    console.warn('Progressive article update failed:', error);
+                });
+            }
         } catch (error) {
             this.showError(`Error loading featured article: ${error.message}`);
             console.error(error);
@@ -651,6 +671,93 @@ class UIController {
         // Enable buttons
         this.elements.startBtn.disabled = false;
         this.elements.pauseBtn.disabled = true;
+        this.elements.resetBtn.disabled = false;
+        this.updateProgressInfo();
+    }
+
+    updateArticleContent(updatedArticle) {
+        // Progressive rendering: update article content while preserving play state
+        // This is called when the full article arrives after showing the extract
+
+        if (!updatedArticle.text || updatedArticle.text.trim().length === 0) {
+            return; // Keep existing content if update fails
+        }
+
+        // Parse new text into syllables
+        const parsed = this.parser.parse(updatedArticle.text);
+        const { syllables, wordMap } = parsed;
+
+        if (syllables.length === 0) {
+            return; // Keep existing content if parsing fails
+        }
+
+        // Preserve current play state
+        const wasPlaying = this.engine && this.engine.isPlaying;
+        const currentIndex = this.engine ? this.engine.currentIndex : 0;
+
+        // Stop current engine
+        if (this.engine) {
+            this.engine.stop();
+        }
+
+        // Update article content
+        this.articleContent = updatedArticle;
+
+        // Re-render with new syllables
+        const articleDiv = this.elements.articleContent;
+
+        // Find and replace just the article-text paragraph, keep the intro
+        const textParagraph = articleDiv.querySelector('.article-text');
+        if (textParagraph) {
+            textParagraph.remove();
+        }
+
+        const mainContent = document.createElement('p');
+        mainContent.className = 'article-text';
+
+        // Clear old cache and build new one
+        this.syllableCache = [];
+
+        // Use DocumentFragment for efficient rendering
+        const fragment = document.createDocumentFragment();
+
+        wordMap.forEach((wordInfo) => {
+            wordInfo.syllables.forEach((syllable, syllableIdx) => {
+                const globalIndex = wordInfo.startIndex + syllableIdx;
+                const syllSpan = document.createElement('span');
+                syllSpan.className = 'syllable';
+                syllSpan.textContent = syllable;
+                syllSpan.dataset.index = globalIndex;
+                fragment.appendChild(syllSpan);
+                this.syllableCache[globalIndex] = syllSpan;
+            });
+
+            if (wordInfo.following) {
+                fragment.appendChild(document.createTextNode(wordInfo.following));
+            }
+        });
+
+        mainContent.appendChild(fragment);
+        articleDiv.appendChild(mainContent);
+
+        // Create new pacing engine with updated syllables
+        this.engine = new PacingEngine(syllables, {
+            speed: parseInt(this.elements.speedControl.value),
+            onSyllableChange: (index, syllable) => this.highlightSyllable(index),
+            onComplete: () => this.onPracticeComplete()
+        });
+
+        // Restore play state
+        if (wasPlaying) {
+            this.engine.start();
+            this.startTimer();
+            this.elements.startBtn.disabled = true;
+            this.elements.pauseBtn.disabled = false;
+        } else {
+            this.elements.startBtn.disabled = false;
+            this.elements.pauseBtn.disabled = true;
+        }
+
         this.elements.resetBtn.disabled = false;
         this.updateProgressInfo();
     }
