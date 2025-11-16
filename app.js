@@ -3,7 +3,7 @@
 // ============================================================
 
 class FetchUtils {
-    static async fetchWithTimeout(url, options = {}, timeout = 10000, retries = 3) {
+    static async fetchWithTimeout(url, options = {}, timeout = 15000, retries = 3) {
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
                 const controller = new AbortController();
