@@ -65,16 +65,19 @@ class WikipediaService {
         const article = data.tfa;
 
         // Check if the featured article response includes extract/description
-        // If it has substantial text (>1000 chars), use it; otherwise fetch full article
+        // If it has substantial text (>800 chars), use it; otherwise fetch full article
         let fullArticle;
-        if (article.extract && article.extract.length > 1000) {
+        if (article.extract && article.extract.length > 800) {
+            console.log(`[PERF] Using extract from featured article response (${article.extract.length} chars)`);
             fullArticle = {
                 title: article.title,
                 text: article.extract,
                 url: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title)}`
             };
         } else {
+            console.log('[PERF] Extract too small, fetching full article in parallel');
             // Get the title from featured article, then fetch the full article text
+            // Start the fetch immediately while we still have control
             fullArticle = await this.getArticleByTitle(article.title);
         }
 
