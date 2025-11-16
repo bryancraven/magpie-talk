@@ -3,8 +3,57 @@
 // ============================================================
 
 class WikipediaService {
+    // Cache storage key prefix
+    static CACHE_PREFIX = 'magpie_cache_';
+
+    // Check if a cached item is still valid
+    static isCacheValid(cacheItem) {
+        if (!cacheItem || !cacheItem.expiresAt) return false;
+        return Date.now() < cacheItem.expiresAt;
+    }
+
+    // Get item from cache
+    static getCachedItem(key) {
+        try {
+            const item = localStorage.getItem(this.CACHE_PREFIX + key);
+            if (!item) return null;
+            const cacheItem = JSON.parse(item);
+            if (this.isCacheValid(cacheItem)) {
+                return cacheItem.article;
+            } else {
+                // Cache expired, remove it
+                localStorage.removeItem(this.CACHE_PREFIX + key);
+                return null;
+            }
+        } catch (e) {
+            console.warn('Cache retrieval failed:', e);
+            return null;
+        }
+    }
+
+    // Store item in cache with expiry time
+    static setCachedItem(key, article, expiryMs) {
+        try {
+            const cacheItem = {
+                article: article,
+                expiresAt: Date.now() + expiryMs
+            };
+            localStorage.setItem(this.CACHE_PREFIX + key, JSON.stringify(cacheItem));
+        } catch (e) {
+            console.warn('Cache storage failed:', e);
+        }
+    }
+
     static async getFeaturedArticle(year, month, day) {
         const dateStr = `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+        const cacheKey = `featured_${dateStr}`;
+
+        // Check cache first (24-hour TTL for featured articles)
+        const cachedArticle = this.getCachedItem(cacheKey);
+        if (cachedArticle) {
+            return cachedArticle;
+        }
+
         const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/featured/${dateStr}`;
 
         const response = await fetch(url);
@@ -15,13 +64,35 @@ class WikipediaService {
         const data = await response.json();
         const article = data.tfa;
 
-        // Get the title from featured article, then fetch the full article text
-        const fullArticle = await this.getArticleByTitle(article.title);
+        // Check if the featured article response includes extract/description
+        // If it has substantial text (>1000 chars), use it; otherwise fetch full article
+        let fullArticle;
+        if (article.extract && article.extract.length > 1000) {
+            fullArticle = {
+                title: article.title,
+                text: article.extract,
+                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title)}`
+            };
+        } else {
+            // Get the title from featured article, then fetch the full article text
+            fullArticle = await this.getArticleByTitle(article.title);
+        }
+
+        // Cache for 24 hours (86400000 ms)
+        this.setCachedItem(cacheKey, fullArticle, 86400000);
 
         return fullArticle;
     }
 
     static async getArticleByTitle(title) {
+        const cacheKey = `article_${title.toLowerCase()}`;
+
+        // Check cache first (session-based cache)
+        const cachedArticle = this.getCachedItem(cacheKey);
+        if (cachedArticle) {
+            return cachedArticle;
+        }
+
         const params = new URLSearchParams({
             action: 'query',
             format: 'json',
@@ -48,11 +119,16 @@ class WikipediaService {
             throw new Error(`Article "${title}" not found`);
         }
 
-        return {
+        const article = {
             title: page.title,
             text: page.extract || '',
             url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`
         };
+
+        // Cache for 7 days (604800000 ms)
+        this.setCachedItem(cacheKey, article, 604800000);
+
+        return article;
     }
 
     static extractPlainText(html) {
@@ -537,6 +613,9 @@ class UIController {
         // Clear syllable cache for new article
         this.syllableCache = [];
 
+        // Use DocumentFragment to batch DOM operations for better performance
+        const fragment = document.createDocumentFragment();
+
         wordMap.forEach((wordInfo) => {
             // Create syllable spans for this word (they will flow naturally)
             wordInfo.syllables.forEach((syllable, syllableIdx) => {
@@ -545,17 +624,18 @@ class UIController {
                 syllSpan.className = 'syllable';
                 syllSpan.textContent = syllable;
                 syllSpan.dataset.index = globalIndex;
-                mainContent.appendChild(syllSpan);
+                fragment.appendChild(syllSpan);
                 // Cache the syllable element for fast access
                 this.syllableCache[globalIndex] = syllSpan;
             });
 
             // Add original following punctuation/spacing (e.g., ", ", ".", " ", etc.)
             if (wordInfo.following) {
-                mainContent.appendChild(document.createTextNode(wordInfo.following));
+                fragment.appendChild(document.createTextNode(wordInfo.following));
             }
         });
 
+        mainContent.appendChild(fragment);
         articleDiv.appendChild(mainContent);
 
         // Initialize pacing engine

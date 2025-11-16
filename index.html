@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Magpie Talk - Speech Practice</title>
+    <!-- Resource hints for faster external resource loading -->
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://api.wikimedia.org">
+    <link rel="dns-prefetch" href="https://en.wikipedia.org">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="styles.css">
     <script>
         // Prevent flash of unstyled content by setting theme early
@@ -48,14 +53,16 @@
                     <button id="loadCustomBtn" class="btn btn-primary">Load Article</button>
                 </div>
                 <div id="articleTitle" class="article-title"></div>
-                <div id="loadingIndicator" class="loading-indicator hidden" role="status" aria-live="polite" aria-atomic="true">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">Loading article...</div>
-                    <div class="loading-progress-bar">
-                        <div class="loading-progress-fill"></div>
-                    </div>
-                </div>
                 <div id="errorMessage" class="error-message hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+            </div>
+
+            <!-- Loading Indicator (outside loaderContent to show during featured article load) -->
+            <div id="loadingIndicator" class="loading-indicator hidden" role="status" aria-live="polite" aria-atomic="true">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading article...</div>
+                <div class="loading-progress-bar">
+                    <div class="loading-progress-fill"></div>
+                </div>
             </div>
         </section>
 
