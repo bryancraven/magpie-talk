@@ -1,4 +1,53 @@
 // ============================================================
+// UTILITIES
+// ============================================================
+
+class FetchUtils {
+    static async fetchWithTimeout(url, options = {}, timeout = 15000, retries = 3) {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                }
+
+                return response;
+            } catch (error) {
+                const isLastAttempt = attempt === retries;
+
+                if (error.name === 'AbortError') {
+                    console.warn('Request timeout (attempt ' + (attempt + 1) + '/' + (retries + 1) + '):', url);
+                    if (isLastAttempt) {
+                        throw new Error('Request timed out after ' + timeout + 'ms. Please check your internet connection.');
+                    }
+                } else {
+                    console.warn('Request failed (attempt ' + (attempt + 1) + '/' + (retries + 1) + '):', error.message);
+                    if (isLastAttempt) {
+                        throw error;
+                    }
+                }
+
+                // Exponential backoff: wait 1s, 2s, 4s between retries
+                if (!isLastAttempt) {
+                    const delay = Math.pow(2, attempt) * 1000;
+                    console.log('Retrying in ' + delay + 'ms...');
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+    }
+}
+
+// ============================================================
 // WIKIPEDIA SERVICE
 // ============================================================
 
@@ -51,16 +100,14 @@ class WikipediaService {
         // Check cache first (24-hour TTL for featured articles)
         const cachedArticle = this.getCachedItem(cacheKey);
         if (cachedArticle) {
+            console.log('Using cached featured article');
             return cachedArticle;
         }
 
         const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/featured/${dateStr}`;
+        console.log('Fetching featured article from API:', url);
 
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch featured article: ${response.status}`);
-        }
-
+        const response = await FetchUtils.fetchWithTimeout(url, {}, 15000, 2);
         const data = await response.json();
         const article = data.tfa;
 
@@ -102,6 +149,7 @@ class WikipediaService {
         // Check cache first (session-based cache)
         const cachedArticle = this.getCachedItem(cacheKey);
         if (cachedArticle) {
+            console.log('Using cached article:', title);
             return cachedArticle;
         }
 
@@ -117,12 +165,9 @@ class WikipediaService {
         });
 
         const url = `https://en.wikipedia.org/w/api.php?${params.toString()}`;
+        console.log('Fetching article from API:', title);
 
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch article: ${response.status}`);
-        }
-
+        const response = await FetchUtils.fetchWithTimeout(url, {}, 15000, 2);
         const data = await response.json();
         const pages = data.query.pages;
         const page = Object.values(pages)[0];
@@ -529,21 +574,26 @@ class UIController {
 
     async loadFeaturedArticle() {
         const loadingStartTime = Date.now();
+        console.log('Starting to load featured article...');
+
         try {
             // Cancel any pending full article promise from previous loads
             this.pendingPromiseCancelled = true;
 
-            this.showLoading(true, 'Fetching article...');
+            this.showLoading(true, 'Fetching featured article from Wikipedia...');
             this.clearError();
             this.disableLoadButtons(true);
 
             const today = new Date();
+            console.log('Requesting featured article for:', today.toDateString());
+
             const article = await WikipediaService.getFeaturedArticle(
                 today.getFullYear(),
                 today.getMonth() + 1,
                 today.getDate()
             );
 
+            console.log('Featured article received:', article.title);
             await this.displayArticle(article);
 
             // Handle progressive rendering: if full article is loading in background, update when ready
@@ -566,13 +616,38 @@ class UIController {
                 });
             }
         } catch (error) {
-            this.showError(`Error loading featured article: ${error.message}`);
-            console.error(error);
+            console.error('Failed to load featured article:', error);
+
+            // Provide user-friendly error message based on error type
+            let errorMessage = 'Error loading featured article. ';
+
+            if (error.message.includes('timed out')) {
+                errorMessage += 'The request took too long. Please check your internet connection and try again.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                errorMessage += 'Could not connect to Wikipedia. Please check your internet connection.';
+            } else if (error.message.includes('HTTP')) {
+                errorMessage += 'Wikipedia API returned an error (' + error.message + '). Please try again later.';
+            } else {
+                errorMessage += error.message;
+            }
+
+            this.showError(errorMessage);
+
+            // Show instructions to retry
+            setTimeout(() => {
+                const currentError = this.elements.errorMessage.textContent;
+                if (
+                    currentError.includes(errorMessage) &&
+                    !this.elements.errorMessage.classList.contains('hidden')
+                ) {
+                    this.elements.errorMessage.textContent = currentError + ' Click "Load different article" to try again or load a specific article.';
+                }
+            }, 1000);
         } finally {
-            // Ensure loading indicator shows for at least 150ms for visibility
+            // Ensure loading indicator shows for at least 300ms for visibility
             const elapsed = Date.now() - loadingStartTime;
-            if (elapsed < 150) {
-                await new Promise(resolve => setTimeout(resolve, 150 - elapsed));
+            if (elapsed < 300) {
+                await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
             }
             this.showLoading(false);
             this.disableLoadButtons(false);
@@ -582,11 +657,13 @@ class UIController {
     async loadArticleByTitle(input) {
         const loadingStartTime = Date.now();
         const originalButtonText = this.elements.loadCustomBtn.textContent;
+        console.log('Loading article by title/URL:', input);
+
         try {
             // Cancel any pending full article promise from featured article load
             this.pendingPromiseCancelled = true;
 
-            this.showLoading(true, 'Fetching article...');
+            this.showLoading(true, 'Fetching article from Wikipedia...');
             this.clearError();
             this.disableLoadButtons(true);
             this.elements.loadCustomBtn.textContent = 'Loading...';
@@ -601,18 +678,36 @@ class UIController {
             if (match) {
                 // Extract the article title from the URL
                 title = decodeURIComponent(match[1]);
+                console.log('Extracted title from URL:', title);
             }
 
             const article = await WikipediaService.getArticleByTitle(title);
+            console.log('Article received:', article.title);
             await this.displayArticle(article);
         } catch (error) {
-            this.showError(`Error loading article: ${error.message}`);
-            console.error(error);
+            console.error('Failed to load article:', error);
+
+            // Provide user-friendly error message based on error type
+            let errorMessage = 'Error loading article "' + input + '". ';
+
+            if (error.message.includes('not found')) {
+                errorMessage += 'Article not found. Please check the title and try again.';
+            } else if (error.message.includes('timed out')) {
+                errorMessage += 'The request took too long. Please check your internet connection and try again.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                errorMessage += 'Could not connect to Wikipedia. Please check your internet connection.';
+            } else if (error.message.includes('HTTP')) {
+                errorMessage += 'Wikipedia API returned an error (' + error.message + '). Please try again later.';
+            } else {
+                errorMessage += error.message;
+            }
+
+            this.showError(errorMessage);
         } finally {
-            // Ensure loading indicator shows for at least 150ms for visibility
+            // Ensure loading indicator shows for at least 300ms for visibility
             const elapsed = Date.now() - loadingStartTime;
-            if (elapsed < 150) {
-                await new Promise(resolve => setTimeout(resolve, 150 - elapsed));
+            if (elapsed < 300) {
+                await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
             }
             this.showLoading(false);
             this.disableLoadButtons(false);
