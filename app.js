@@ -636,7 +636,10 @@ class UIController {
             // Show instructions to retry
             setTimeout(() => {
                 const currentError = this.elements.errorMessage.textContent;
-                if (currentError.includes(errorMessage)) {
+                if (
+                    currentError.includes(errorMessage) &&
+                    !this.elements.errorMessage.classList.contains('hidden')
+                ) {
                     this.elements.errorMessage.textContent = currentError + ' Click "Load different article" to try again or load a specific article.';
                 }
             }, 1000);
