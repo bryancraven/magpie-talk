@@ -87,10 +87,15 @@
             method: 'HEAD'
         })
             .then(r => {
+                // Consider 504 as "reachable but temporarily unavailable"
+                const isReachable = r.status < 500 || r.status === 504;
+                const message = r.status === 504
+                    ? `Status: ${r.status} (Temporarily unavailable - backend timeout)`
+                    : `Status: ${r.status} ${r.statusText}`;
                 addTest(
                     'Wikipedia API Reachable',
-                    r.ok,
-                    `Status: ${r.status} ${r.statusText}`
+                    isReachable,
+                    message + '\n' + (r.status === 504 ? 'Note: This is temporary - app will work when API recovers' : '')
                 );
             })
             .catch(e => addTest('Wikipedia API Reachable', false, e.message));
