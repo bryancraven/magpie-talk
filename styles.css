@@ -741,12 +741,10 @@ header h1 {
     }
 
     .time-progress-section {
-        position: fixed;
+        position: sticky;
         top: 0;
-        left: 0;
-        right: 0;
         z-index: 100;
-        margin-bottom: 0;
+        margin-bottom: 15px;
         border-radius: 0;
         border-left: none;
         border-right: none;
