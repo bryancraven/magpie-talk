@@ -490,7 +490,15 @@ class UIController {
         this.pendingFullArticlePromise = null;
         this.pendingPromiseCancelled = false;
 
+        // Target duration for time-based progress (default: 10 minutes)
+        const savedDuration = localStorage.getItem('targetDuration');
+        this.targetDuration = savedDuration ? parseInt(savedDuration) : 600000; // milliseconds
+
         this.initElements();
+
+        // Initialize duration control value from targetDuration
+        this.elements.durationControl.value = Math.floor(this.targetDuration / 60000);
+
         this.attachEventListeners();
         this.loadFeaturedArticleOnInit();
     }
@@ -522,6 +530,9 @@ class UIController {
             timer: document.getElementById('timer'),
             speedControl: document.getElementById('speedControl'),
             speedValue: document.getElementById('speedValue'),
+            durationControl: document.getElementById('durationControl'),
+            timeProgressFill: document.getElementById('timeProgressFill'),
+            timeProgressText: document.getElementById('timeProgressText'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             errorMessage: document.getElementById('errorMessage'),
             progressInfo: document.getElementById('progressInfo')
@@ -574,6 +585,16 @@ class UIController {
             this.elements.speedValue.textContent = `${speed}ms`;
             if (this.engine) {
                 this.engine.setSpeed(speed);
+            }
+        });
+
+        this.elements.durationControl.addEventListener('input', (e) => {
+            const durationMinutes = parseInt(e.target.value);
+            this.targetDuration = durationMinutes * 60000; // Convert minutes to milliseconds
+            localStorage.setItem('targetDuration', this.targetDuration.toString());
+            // Update progress display if timer is running
+            if (this.engine) {
+                this.updateTimeProgress();
             }
         });
 
@@ -1068,6 +1089,35 @@ class UIController {
 
         this.elements.timer.textContent =
             `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        // Update time-based progress bar
+        this.updateTimeProgress();
+    }
+
+    updateTimeProgress() {
+        if (!this.engine) return;
+
+        const elapsed = this.engine.getElapsedTime();
+
+        // Calculate percentage (capped at 100%)
+        const percentage = Math.min(100, (elapsed / this.targetDuration) * 100);
+
+        // Update progress bar fill width
+        this.elements.timeProgressFill.style.width = `${percentage}%`;
+
+        // Format elapsed time (M:SS)
+        const elapsedMinutes = Math.floor(elapsed / 60000);
+        const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
+        const elapsedFormatted = `${elapsedMinutes}:${String(elapsedSeconds).padStart(2, '0')}`;
+
+        // Format target time (M:SS)
+        const targetMinutes = Math.floor(this.targetDuration / 60000);
+        const targetSeconds = Math.floor((this.targetDuration % 60000) / 1000);
+        const targetFormatted = `${targetMinutes}:${String(targetSeconds).padStart(2, '0')}`;
+
+        // Update text display
+        this.elements.timeProgressText.textContent =
+            `${elapsedFormatted} / ${targetFormatted} (${Math.floor(percentage)}%)`;
     }
 
     updateProgressInfo() {

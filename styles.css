@@ -163,6 +163,63 @@ header h1 {
     min-width: 140px;
 }
 
+/* Time Progress Section */
+.time-progress-section {
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+}
+
+.time-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.time-progress-bar {
+    flex: 1;
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.time-progress-fill {
+    height: 100%;
+    background-color: var(--btn-primary-bg);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.time-progress-info {
+    min-width: 140px;
+    text-align: right;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-family: 'Courier New', monospace;
+}
+
+/* Duration Input */
+.duration-input {
+    width: 60px;
+    padding: 6px 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.duration-input:focus {
+    outline: none;
+    border-color: var(--btn-primary-bg);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
 .loader-toggle {
     width: 100%;
     padding: 15px 20px;
@@ -655,6 +712,40 @@ header h1 {
     .quickstart-section {
         min-width: unset;
         padding: 12px 15px;
+    }
+
+    .time-progress-section {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        margin-bottom: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        padding: 10px 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .time-progress-container {
+        gap: 10px;
+    }
+
+    .time-progress-bar {
+        height: 6px;
+    }
+
+    .time-progress-info {
+        min-width: 120px;
+        font-size: 12px;
+    }
+
+    .duration-input {
+        width: 50px;
+        padding: 5px 6px;
+        font-size: 13px;
     }
 
     .input-group {

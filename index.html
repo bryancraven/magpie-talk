@@ -76,6 +76,18 @@
         </section>
         </div>
 
+        <!-- Time Progress Indicator -->
+        <section class="time-progress-section">
+            <div class="time-progress-container">
+                <div class="time-progress-bar">
+                    <div id="timeProgressFill" class="time-progress-fill"></div>
+                </div>
+                <div class="time-progress-info">
+                    <span id="timeProgressText">0:00 / 10:00 (0%)</span>
+                </div>
+            </div>
+        </section>
+
         <!-- Article Content Display -->
         <section class="article-section">
             <div id="articleContent" class="article-content"></div>
@@ -106,6 +118,20 @@
                     class="slider"
                 >
                 <span id="speedValue">1500ms</span>
+            </div>
+
+            <div class="settings">
+                <label for="durationControl">Target Duration:</label>
+                <input
+                    type="number"
+                    id="durationControl"
+                    min="1"
+                    max="60"
+                    value="10"
+                    step="1"
+                    class="duration-input"
+                >
+                <span>minutes</span>
             </div>
         </section>
 
