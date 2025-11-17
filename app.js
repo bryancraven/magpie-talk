@@ -499,6 +499,9 @@ class UIController {
         // Initialize duration control value from targetDuration
         this.elements.durationControl.value = Math.floor(this.targetDuration / 60000);
 
+        // Initialize progress marks
+        this.updateProgressMarks();
+
         this.attachEventListeners();
         this.loadFeaturedArticleOnInit();
     }
@@ -533,6 +536,7 @@ class UIController {
             durationControl: document.getElementById('durationControl'),
             timeProgressFill: document.getElementById('timeProgressFill'),
             timeProgressText: document.getElementById('timeProgressText'),
+            timeProgressMarks: document.getElementById('timeProgressMarks'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             errorMessage: document.getElementById('errorMessage'),
             progressInfo: document.getElementById('progressInfo')
@@ -592,6 +596,8 @@ class UIController {
             const durationMinutes = parseInt(e.target.value);
             this.targetDuration = durationMinutes * 60000; // Convert minutes to milliseconds
             localStorage.setItem('targetDuration', this.targetDuration.toString());
+            // Update progress marks for new duration
+            this.updateProgressMarks();
             // Update progress display if timer is running
             if (this.engine) {
                 this.updateTimeProgress();
@@ -1118,6 +1124,37 @@ class UIController {
         // Update text display
         this.elements.timeProgressText.textContent =
             `${elapsedFormatted} / ${targetFormatted} (${Math.floor(percentage)}%)`;
+    }
+
+    updateProgressMarks() {
+        // Clear existing marks
+        this.elements.timeProgressMarks.innerHTML = '';
+
+        // Calculate total minutes in target duration
+        const totalMinutes = Math.floor(this.targetDuration / 60000);
+
+        // Don't add marks if duration is less than 2 minutes
+        if (totalMinutes < 2) return;
+
+        // Calculate halfway point
+        const halfwayMinute = Math.floor(totalMinutes / 2);
+
+        // Create marks for each minute
+        for (let minute = 1; minute < totalMinutes; minute++) {
+            const mark = document.createElement('div');
+            mark.className = 'time-progress-mark';
+
+            // Make halfway mark more prominent
+            if (minute === halfwayMinute) {
+                mark.classList.add('halfway');
+            }
+
+            // Position mark as percentage of total duration
+            const position = (minute / totalMinutes) * 100;
+            mark.style.left = `${position}%`;
+
+            this.elements.timeProgressMarks.appendChild(mark);
+        }
     }
 
     updateProgressInfo() {

@@ -184,6 +184,29 @@ header h1 {
     background-color: var(--border-color);
     border-radius: 4px;
     overflow: hidden;
+    position: relative;
+}
+
+.time-progress-marks {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.time-progress-mark {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.time-progress-mark.halfway {
+    width: 2px;
+    background-color: rgba(0, 0, 0, 0.25);
 }
 
 .time-progress-fill {
@@ -191,6 +214,8 @@ header h1 {
     background-color: var(--btn-primary-bg);
     width: 0%;
     transition: width 0.3s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .time-progress-info {
