@@ -36,6 +36,8 @@
             </button>
         </header>
 
+        <!-- Article Loader and Quickstart Wrapper -->
+        <div class="loader-quickstart-wrapper">
         <!-- Article Loader -->
         <section class="article-loader">
             <button id="loaderToggle" class="loader-toggle" aria-expanded="false" aria-controls="loaderContent">Load different article</button>
@@ -68,6 +70,12 @@
             <div id="errorMessage" class="error-message hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
         </section>
 
+        <!-- Quickstart Section -->
+        <section class="quickstart-section">
+            <button id="quickstartBtn" class="btn btn-primary" disabled aria-label="Quickstart syllable practice">Quickstart</button>
+        </section>
+        </div>
+
         <!-- Article Content Display -->
         <section class="article-section">
             <div id="articleContent" class="article-content"></div>
@@ -93,11 +101,11 @@
                     id="speedControl"
                     min="500"
                     max="2000"
-                    value="1000"
+                    value="1500"
                     step="100"
                     class="slider"
                 >
-                <span id="speedValue">1000ms</span>
+                <span id="speedValue">1500ms</span>
             </div>
         </section>
 

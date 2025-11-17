@@ -515,6 +515,7 @@ class UIController {
             loadCustomBtn: document.getElementById('loadCustomBtn'),
             articleTitle: document.getElementById('articleTitle'),
             articleContent: document.getElementById('articleContent'),
+            quickstartBtn: document.getElementById('quickstartBtn'),
             startBtn: document.getElementById('startBtn'),
             pauseBtn: document.getElementById('pauseBtn'),
             resetBtn: document.getElementById('resetBtn'),
@@ -550,6 +551,10 @@ class UIController {
                     this.loadArticleByTitle(title);
                 }
             }
+        });
+
+        this.elements.quickstartBtn.addEventListener('click', () => {
+            this.startPractice();
         });
 
         this.elements.startBtn.addEventListener('click', () => {
@@ -852,6 +857,7 @@ class UIController {
         });
 
         // Enable buttons
+        this.elements.quickstartBtn.disabled = false;
         this.elements.startBtn.disabled = false;
         this.elements.pauseBtn.disabled = true;
         this.elements.resetBtn.disabled = false;

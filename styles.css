@@ -135,13 +135,32 @@ header h1 {
     display: inline-block;
 }
 
+/* Article Loader and Quickstart Wrapper */
+.loader-quickstart-wrapper {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
 /* Article Loader Section */
 .article-loader {
+    flex: 1;
     background-color: var(--bg-secondary);
     border-radius: 8px;
-    margin-bottom: 20px;
     border: 1px solid var(--border-color);
     overflow: hidden;
+}
+
+/* Quickstart Section */
+.quickstart-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 15px 20px;
+    min-width: 140px;
 }
 
 .loader-toggle {
@@ -584,19 +603,21 @@ header h1 {
     header {
         padding: 15px;
         margin-bottom: 15px;
-        flex-direction: column;
+        flex-direction: row;
         gap: 10px;
-        justify-content: center;
+        justify-content: space-between;
+        align-items: flex-start;
     }
 
     .header-content {
-        width: 100%;
+        width: auto;
+        flex: 1;
     }
 
     .header-title {
         flex-direction: column;
         gap: 8px;
-        justify-content: center;
+        align-items: flex-start;
     }
 
     .mascot {
@@ -609,7 +630,7 @@ header h1 {
 
     .tagline {
         font-size: 13px;
-        text-align: center;
+        text-align: left;
     }
 
     .loader-toggle {
@@ -621,8 +642,19 @@ header h1 {
         padding: 15px;
     }
 
-    .article-loader {
+    .loader-quickstart-wrapper {
+        flex-direction: column;
+        gap: 12px;
         margin-bottom: 15px;
+    }
+
+    .article-loader {
+        margin-bottom: 0;
+    }
+
+    .quickstart-section {
+        min-width: unset;
+        padding: 12px 15px;
     }
 
     .input-group {
