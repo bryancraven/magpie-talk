@@ -107,8 +107,14 @@ class WikipediaService {
         const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/featured/${dateStr}`;
         console.log('Fetching featured article from API:', url);
 
-        const response = await FetchUtils.fetchWithTimeout(url, {}, 15000, 2);
+        perfMon.start('API: Featured Article Fetch');
+        const response = await FetchUtils.fetchWithTimeout(url, {
+            headers: {
+                'Api-User-Agent': 'MagpieTalk/1.0 (https://github.com/bryancraven/magpie-talk; bryancraven@users.noreply.github.com)'
+            }
+        }, 15000, 2);
         const data = await response.json();
+        perfMon.end('API: Featured Article Fetch');
         const article = data.tfa;
 
         // Create extract article immediately for progressive rendering
@@ -167,8 +173,14 @@ class WikipediaService {
         const url = `https://en.wikipedia.org/w/api.php?${params.toString()}`;
         console.log('Fetching article from API:', title);
 
-        const response = await FetchUtils.fetchWithTimeout(url, {}, 15000, 2);
+        perfMon.start('API: Full Article Fetch');
+        const response = await FetchUtils.fetchWithTimeout(url, {
+            headers: {
+                'Api-User-Agent': 'MagpieTalk/1.0 (https://github.com/bryancraven/magpie-talk; bryancraven@users.noreply.github.com)'
+            }
+        }, 15000, 2);
         const data = await response.json();
+        perfMon.end('API: Full Article Fetch');
         const pages = data.query.pages;
         const page = Object.values(pages)[0];
 
@@ -575,6 +587,7 @@ class UIController {
     async loadFeaturedArticle() {
         const loadingStartTime = Date.now();
         console.log('Starting to load featured article...');
+        perfMon.start('Total: Load Featured Article');
 
         try {
             // Cancel any pending full article promise from previous loads
@@ -595,6 +608,12 @@ class UIController {
 
             console.log('Featured article received:', article.title);
             await this.displayArticle(article);
+
+            perfMon.end('Total: Load Featured Article');
+            perfMon.report();
+
+            // Predictive caching: Pre-fetch tomorrow's featured article in background
+            this.prefetchTomorrowArticle();
 
             // Handle progressive rendering: if full article is loading in background, update when ready
             if (article._fullArticlePromise) {
@@ -784,8 +803,10 @@ class UIController {
         this.showLoading(true, 'Parsing syllables...');
 
         // Parse text into syllables with word mapping
+        perfMon.start('Syllable Parsing');
         const parsed = this.parser.parse(article.text);
         const { syllables, wordMap } = parsed;
+        perfMon.end('Syllable Parsing');
 
         // Validate that we have syllables to work with
         if (syllables.length === 0) {
@@ -817,7 +838,9 @@ class UIController {
         this.syllableCache = [];
 
         // Render syllables asynchronously
+        perfMon.start('DOM Rendering');
         await this.renderSyllablesAsync(wordMap, mainContent);
+        perfMon.end('DOM Rendering');
 
         articleDiv.appendChild(mainContent);
 
@@ -1087,12 +1110,127 @@ class UIController {
         this.elements.loadCustomBtn.disabled = disabled;
         this.elements.articleInput.disabled = disabled;
     }
+
+    prefetchTomorrowArticle() {
+        // Pre-fetch tomorrow's featured article in the background for instant loading
+        // This runs after today's article has loaded successfully
+        setTimeout(() => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            console.log('🔮 Prefetching tomorrow\'s featured article for instant loading...');
+
+            WikipediaService.getFeaturedArticle(
+                tomorrow.getFullYear(),
+                tomorrow.getMonth() + 1,
+                tomorrow.getDate()
+            ).then(() => {
+                console.log('✅ Tomorrow\'s article cached successfully');
+            }).catch((error) => {
+                // Silently fail - this is just a performance optimization
+                console.log('ℹ️ Could not prefetch tomorrow\'s article:', error.message);
+            });
+        }, 2000); // Wait 2 seconds after current article loads to avoid interfering
+    }
 }
+
+// ============================================================
+// PERFORMANCE MONITORING
+// ============================================================
+
+class PerformanceMonitor {
+    constructor() {
+        this.timings = {};
+        this.marks = {};
+    }
+
+    start(label) {
+        this.marks[label] = performance.now();
+        console.log(`⏱️ [START] ${label}`);
+    }
+
+    end(label) {
+        if (this.marks[label]) {
+            const duration = performance.now() - this.marks[label];
+            this.timings[label] = duration;
+            console.log(`⏱️ [END] ${label}: ${duration.toFixed(2)}ms`);
+            delete this.marks[label];
+            return duration;
+        }
+        return null;
+    }
+
+    report() {
+        console.log('📊 Performance Report:');
+        console.table(this.timings);
+
+        // Calculate total time to content
+        const totalTime = Object.values(this.timings).reduce((sum, val) => sum + val, 0);
+        console.log(`⏱️ Total Time to Content: ${totalTime.toFixed(2)}ms (${(totalTime / 1000).toFixed(2)}s)`);
+
+        // If running in iframe (test harness), send data to parent
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'perfData',
+                timings: this.timings
+            }, '*');
+        }
+
+        return this.timings;
+    }
+
+    reset() {
+        this.timings = {};
+        this.marks = {};
+    }
+}
+
+// Global performance monitor instance
+const perfMon = new PerformanceMonitor();
 
 // ============================================================
 // INITIALIZE APP
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Calculate actual page load time using Navigation Timing API
+    if (performance.timing) {
+        const pageLoadTime = performance.timing.domContentLoadedEventStart - performance.timing.navigationStart;
+        perfMon.timings['Page Load → DOMContentLoaded'] = pageLoadTime;
+        console.log(`⏱️ [MEASURED] Page Load → DOMContentLoaded: ${pageLoadTime.toFixed(2)}ms`);
+    }
+
     new UIController();
+    registerServiceWorker();
 });
+
+// ============================================================
+// SERVICE WORKER REGISTRATION
+// ============================================================
+
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/service-worker.js');
+            console.log('✅ Service Worker registered successfully:', registration.scope);
+
+            // Handle updates
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('🔄 Service Worker update found');
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('📦 New Service Worker installed, will activate on next visit');
+                        // Optionally show a notification to user about update
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.warn('⚠️ Service Worker registration failed:', error);
+        }
+    } else {
+        console.log('ℹ️ Service Workers not supported in this browser');
+    }
+}

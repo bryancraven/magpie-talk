@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Basic Functionality Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+        .test { margin: 10px 0; padding: 10px; background: white; border-left: 4px solid #ccc; }
+        .test.pass { border-color: #4CAF50; }
+        .test.fail { border-color: #f44336; }
+        h1 { color: #333; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Basic Functionality Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addTest(name, passed, details = '') {
+            const div = document.createElement('div');
+            div.className = 'test ' + (passed ? 'pass' : 'fail');
+            div.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} ${name}</strong>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        // Test 1: Service Worker support
+        addTest(
+            'Service Worker Support',
+            'serviceWorker' in navigator,
+            'serviceWorker' in navigator ? 'Supported' : 'Not supported'
+        );
+
+        // Test 2: Performance API
+        addTest(
+            'Performance API',
+            typeof performance !== 'undefined' && typeof performance.timing !== 'undefined',
+            typeof performance !== 'undefined' ? 'Available' : 'Not available'
+        );
+
+        // Test 3: LocalStorage
+        try {
+            localStorage.setItem('test', '1');
+            localStorage.removeItem('test');
+            addTest('LocalStorage', true, 'Working');
+        } catch (e) {
+            addTest('LocalStorage', false, e.message);
+        }
+
+        // Test 4: Fetch API
+        addTest(
+            'Fetch API',
+            typeof fetch !== 'undefined',
+            typeof fetch !== 'undefined' ? 'Available' : 'Not available'
+        );
+
+        // Test 5: Check if app.js loads
+        fetch('/app.js')
+            .then(r => r.text())
+            .then(text => {
+                addTest(
+                    'app.js Loads',
+                    text.includes('PerformanceMonitor'),
+                    `File size: ${(text.length / 1024).toFixed(2)} KB`
+                );
+            })
+            .catch(e => addTest('app.js Loads', false, e.message));
+
+        // Test 6: Check if service-worker.js loads
+        fetch('/service-worker.js')
+            .then(r => r.text())
+            .then(text => {
+                addTest(
+                    'service-worker.js Loads',
+                    text.includes('CACHE_NAME'),
+                    `File size: ${(text.length / 1024).toFixed(2)} KB`
+                );
+            })
+            .catch(e => addTest('service-worker.js Loads', false, e.message));
+
+        // Test 7: Wikipedia API reachability (simple check)
+        fetch('https://api.wikimedia.org/feed/v1/wikipedia/en/featured/2025/11/17', {
+            method: 'HEAD'
+        })
+            .then(r => {
+                addTest(
+                    'Wikipedia API Reachable',
+                    r.ok,
+                    `Status: ${r.status} ${r.statusText}`
+                );
+            })
+            .catch(e => addTest('Wikipedia API Reachable', false, e.message));
+    </script>
+</body>
+</html>
