@@ -11,9 +11,12 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Prevent flash of unstyled content by setting theme early
+        // Prevent flash of unstyled content by setting theme and font size early
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
+
+        const savedFontSize = localStorage.getItem('fontSize') || 'medium';
+        document.documentElement.setAttribute('data-font-size', savedFontSize);
     </script>
 </head>
 <body>
@@ -133,6 +136,16 @@
                     class="duration-input"
                 >
                 <span>minutes</span>
+            </div>
+
+            <div class="settings">
+                <label for="fontSizeControl">Font Size:</label>
+                <select id="fontSizeControl" class="font-size-select">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                    <option value="xlarge">Extra Large</option>
+                </select>
             </div>
         </section>
 

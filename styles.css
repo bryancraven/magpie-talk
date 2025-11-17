@@ -33,6 +33,27 @@
     --header-bg: #222222;
 }
 
+/* Font Size Variables */
+:root {
+    --font-scale: 1;
+}
+
+:root[data-font-size="small"] {
+    --font-scale: 0.9;
+}
+
+:root[data-font-size="medium"] {
+    --font-scale: 1.05;
+}
+
+:root[data-font-size="large"] {
+    --font-scale: 1.2;
+}
+
+:root[data-font-size="xlarge"] {
+    --font-scale: 1.35;
+}
+
 /* Global Styles */
 * {
     margin: 0;
@@ -51,6 +72,7 @@ body {
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
     line-height: 1.6;
+    font-size: calc(16px * var(--font-scale));
 }
 
 /* Container */
@@ -241,6 +263,23 @@ header h1 {
 }
 
 .duration-input:focus {
+    outline: none;
+    border-color: var(--btn-primary-bg);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+/* Font Size Select */
+.font-size-select {
+    padding: 6px 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.font-size-select:focus {
     outline: none;
     border-color: var(--btn-primary-bg);
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);

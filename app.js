@@ -474,12 +474,34 @@ class ThemeManager {
 }
 
 // ============================================================
+// FONT SIZE MANAGER
+// ============================================================
+
+class FontSizeManager {
+    constructor() {
+        this.currentSize = localStorage.getItem('fontSize') || 'medium';
+        this.applyFontSize(this.currentSize);
+    }
+
+    setSize(size) {
+        this.currentSize = size;
+        this.applyFontSize(size);
+    }
+
+    applyFontSize(size) {
+        document.documentElement.setAttribute('data-font-size', size);
+        localStorage.setItem('fontSize', size);
+    }
+}
+
+// ============================================================
 // UI CONTROLLER
 // ============================================================
 
 class UIController {
     constructor() {
         this.themeManager = new ThemeManager();
+        this.fontSizeManager = new FontSizeManager();
         this.parser = new SyllableParser();
         this.engine = null;
         this.articleContent = null;
@@ -498,6 +520,9 @@ class UIController {
 
         // Initialize duration control value from targetDuration
         this.elements.durationControl.value = Math.floor(this.targetDuration / 60000);
+
+        // Initialize font size control value from localStorage
+        this.elements.fontSizeControl.value = this.fontSizeManager.currentSize;
 
         // Initialize progress marks
         this.updateProgressMarks();
@@ -534,6 +559,7 @@ class UIController {
             speedControl: document.getElementById('speedControl'),
             speedValue: document.getElementById('speedValue'),
             durationControl: document.getElementById('durationControl'),
+            fontSizeControl: document.getElementById('fontSizeControl'),
             timeProgressFill: document.getElementById('timeProgressFill'),
             timeProgressText: document.getElementById('timeProgressText'),
             timeProgressMarks: document.getElementById('timeProgressMarks'),
@@ -602,6 +628,11 @@ class UIController {
             if (this.engine) {
                 this.updateTimeProgress();
             }
+        });
+
+        this.elements.fontSizeControl.addEventListener('change', (e) => {
+            const fontSize = e.target.value;
+            this.fontSizeManager.setSize(fontSize);
         });
 
         // Keyboard shortcut: space to pause/resume (but not when typing in input)
