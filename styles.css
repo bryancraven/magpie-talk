@@ -114,7 +114,7 @@ header {
 
 .mascot {
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.2;
     margin: 0;
     white-space: pre;
@@ -122,13 +122,13 @@ header {
 }
 
 header h1 {
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 600;
     margin: 0;
 }
 
 .tagline {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     margin: 8px 0 0 0;
     font-weight: 400;
@@ -136,28 +136,119 @@ header h1 {
     text-align: left;
 }
 
+/* Header Toggles */
+.header-toggles {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 /* Theme Toggle */
-.theme-toggle {
+.theme-toggle,
+.mesh-toggle {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 1.5rem;
     cursor: pointer;
     padding: 8px;
     border-radius: 4px;
     transition: background-color 0.2s ease;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.mesh-toggle:hover {
     background-color: var(--bg-secondary);
 }
 
-.theme-toggle:focus {
+.theme-toggle:focus,
+.mesh-toggle:focus {
     outline: 2px solid var(--btn-primary-bg);
     outline-offset: 2px;
 }
 
-.theme-icon {
+.theme-icon,
+.mesh-icon {
     display: inline-block;
+}
+
+/* Mesh Gradient Background */
+:root[data-mesh-mode="on"] body {
+    background:
+        radial-gradient(at 20% 30%, rgba(138, 43, 226, 0.25) 0px, transparent 50%),
+        radial-gradient(at 80% 20%, rgba(255, 20, 147, 0.25) 0px, transparent 50%),
+        radial-gradient(at 60% 80%, rgba(0, 191, 255, 0.25) 0px, transparent 50%),
+        radial-gradient(at 30% 70%, rgba(255, 105, 180, 0.2) 0px, transparent 50%),
+        radial-gradient(at 90% 60%, rgba(138, 43, 226, 0.2) 0px, transparent 50%),
+        linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    animation: mesh-shift 15s ease-in-out infinite;
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] body {
+    background:
+        radial-gradient(at 20% 30%, rgba(138, 43, 226, 0.4) 0px, transparent 50%),
+        radial-gradient(at 80% 20%, rgba(255, 20, 147, 0.4) 0px, transparent 50%),
+        radial-gradient(at 60% 80%, rgba(0, 191, 255, 0.4) 0px, transparent 50%),
+        radial-gradient(at 30% 70%, rgba(255, 105, 180, 0.35) 0px, transparent 50%),
+        radial-gradient(at 90% 60%, rgba(138, 43, 226, 0.35) 0px, transparent 50%),
+        linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background-attachment: fixed;
+    animation: mesh-shift 15s ease-in-out infinite;
+}
+
+@keyframes mesh-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Glassmorphism Effects for Mesh Mode */
+:root[data-mesh-mode="on"] header,
+:root[data-mesh-mode="on"] .article-loader,
+:root[data-mesh-mode="on"] .article-section,
+:root[data-mesh-mode="on"] .control-panel,
+:root[data-mesh-mode="on"] .time-progress-section,
+:root[data-mesh-mode="on"] .footer-disclaimer,
+:root[data-mesh-mode="on"] .references-section {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] header,
+:root[data-mesh-mode="on"][data-theme="dark"] .article-loader,
+:root[data-mesh-mode="on"][data-theme="dark"] .article-section,
+:root[data-mesh-mode="on"][data-theme="dark"] .control-panel,
+:root[data-mesh-mode="on"][data-theme="dark"] .time-progress-section,
+:root[data-mesh-mode="on"][data-theme="dark"] .footer-disclaimer,
+:root[data-mesh-mode="on"][data-theme="dark"] .references-section {
+    background: rgba(26, 26, 26, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced text contrast in mesh mode */
+:root[data-mesh-mode="on"] .article-content,
+:root[data-mesh-mode="on"] h1,
+:root[data-mesh-mode="on"] .tagline,
+:root[data-mesh-mode="on"] label,
+:root[data-mesh-mode="on"] .loader-header {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] .article-content,
+:root[data-mesh-mode="on"][data-theme="dark"] h1,
+:root[data-mesh-mode="on"][data-theme="dark"] .tagline,
+:root[data-mesh-mode="on"][data-theme="dark"] label,
+:root[data-mesh-mode="on"][data-theme="dark"] .loader-header {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Article Loader and Quickstart Wrapper */
@@ -186,6 +277,27 @@ header h1 {
     border: 1px solid var(--border-color);
     padding: 15px 20px;
     min-width: 140px;
+}
+
+#quickstartBtn:not(:disabled) {
+    background: linear-gradient(135deg, var(--btn-primary-bg) 0%, var(--btn-primary-hover) 100%);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    animation: quickstart-pulse 2s ease-in-out infinite;
+}
+
+#quickstartBtn:not(:disabled):hover {
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+    animation: none;
+}
+
+@keyframes quickstart-pulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 16px rgba(0, 123, 255, 0.5);
+    }
 }
 
 /* Time Progress Section */
@@ -235,6 +347,26 @@ header h1 {
     background-color: rgba(0, 0, 0, 0.35);
 }
 
+/* Enhanced visibility in mesh mode */
+:root[data-mesh-mode="on"] .time-progress-mark {
+    background-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-mesh-mode="on"] .time-progress-mark.halfway {
+    background-color: rgba(255, 255, 255, 0.6);
+    width: 3px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] .time-progress-mark {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] .time-progress-mark.halfway {
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
 .time-progress-fill {
     height: 100%;
     background-color: var(--btn-primary-bg);
@@ -247,7 +379,7 @@ header h1 {
 .time-progress-info {
     min-width: 140px;
     text-align: right;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-primary);
     font-weight: 500;
     font-family: 'Courier New', monospace;
@@ -261,7 +393,7 @@ header h1 {
     border-radius: 4px;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 0.875rem;
     text-align: center;
 }
 
@@ -278,7 +410,7 @@ header h1 {
     border-radius: 4px;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 0.875rem;
     cursor: pointer;
 }
 
@@ -294,7 +426,7 @@ header h1 {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     border: none;
-    font-size: 15px;
+    font-size: 0.875rem;
     font-weight: 500;
     text-align: left;
     cursor: pointer;
@@ -333,7 +465,7 @@ header h1 {
 
 .loader-header {
     margin: 0 0 15px 0;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     font-style: italic;
 }
@@ -353,7 +485,7 @@ header h1 {
     border-radius: 4px;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 0.875rem;
     transition: border-color 0.2s ease;
 }
 
@@ -364,7 +496,7 @@ header h1 {
 }
 
 .article-title {
-    font-size: 18px;
+    font-size: 1.5rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-top: 10px;
@@ -393,14 +525,25 @@ header h1 {
     animation: spin 0.8s linear infinite;
 }
 
+:root[data-mesh-mode="on"] .loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--btn-primary-bg);
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
 .loading-text {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     font-weight: 500;
+}
+
+:root[data-mesh-mode="on"] .loading-text {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
 }
 
 .loading-progress-bar {
@@ -515,7 +658,7 @@ header h1 {
 .article-intro {
     color: var(--text-secondary);
     margin-bottom: 20px !important;
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 .article-source-link {
@@ -537,7 +680,7 @@ header h1 {
 
 .syllable {
     display: inline;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .syllable.active {
@@ -546,6 +689,129 @@ header h1 {
     font-weight: 700;
     padding: 2px 3px;
     border-radius: 2px;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+    animation: syllable-glow 0.3s ease-out;
+}
+
+@keyframes syllable-glow {
+    0% {
+        box-shadow: 0 0 4px rgba(255, 215, 0, 0.2);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+}
+
+/* Target Position Marker in Text - Google Sheets style cursor */
+.target-position-marker {
+    display: inline-block;
+    position: relative;
+    margin-left: 1px;
+    margin-right: 1px;
+}
+
+.target-cursor {
+    display: inline-block;
+    position: relative;
+    width: 0;
+    height: 1.5em;
+    vertical-align: text-top;
+}
+
+.target-cursor-time {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff6b35;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    font-family: 'Courier New', monospace;
+    z-index: 11;
+    animation: pulse-label 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+:root[data-theme="dark"] .target-cursor-time {
+    background-color: #ff8c42;
+    color: #1a1a1a;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-mesh-mode="on"] .target-cursor-time {
+    background-color: rgba(255, 107, 53, 0.95);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+:root[data-mesh-mode="on"][data-theme="dark"] .target-cursor-time {
+    background-color: rgba(255, 140, 66, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulse-label {
+    0%, 100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(-50%) scale(1.05);
+        opacity: 0.95;
+    }
+}
+
+.target-cursor-flag {
+    position: absolute;
+    top: -2px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    background-color: #ff6b35;
+    border: 1.5px solid #fff;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+:root[data-theme="dark"] .target-cursor-flag {
+    background-color: #ff8c42;
+    border-color: #1a1a1a;
+}
+
+.target-cursor-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background-color: #ff6b35;
+    opacity: 0.85;
+    animation: cursor-fade 1.5s ease-in-out infinite;
+}
+
+:root[data-theme="dark"] .target-cursor-line {
+    background-color: #ff8c42;
+}
+
+@keyframes cursor-fade {
+    0%, 100% {
+        opacity: 0.85;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
 /* Control Panel */
@@ -563,7 +829,7 @@ header h1 {
 }
 
 .timer {
-    font-size: 48px;
+    font-size: 3rem;
     font-weight: 700;
     font-family: 'Courier New', monospace;
     color: var(--btn-primary-bg);
@@ -571,7 +837,7 @@ header h1 {
 }
 
 .timer-label {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -595,7 +861,7 @@ header h1 {
 }
 
 .settings label {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     font-weight: 500;
 }
@@ -614,20 +880,20 @@ header h1 {
 #speedValue {
     min-width: 60px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 /* Progress Info */
 .progress-info {
     text-align: center;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     padding: 10px;
 }
 
 /* Loader Info */
 .loader-info {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--text-secondary);
     margin: 0;
     margin-top: 10px;
@@ -645,7 +911,7 @@ header h1 {
 }
 
 .footer-disclaimer p {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
@@ -681,7 +947,7 @@ header h1 {
 }
 
 .references-section h3 {
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--text-primary);
     margin-top: 0;
     margin-bottom: 15px;
@@ -692,7 +958,7 @@ header h1 {
     margin: 0;
     padding-left: 20px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 0.8125rem;
     line-height: 1.7;
 }
 
@@ -750,21 +1016,21 @@ header h1 {
     }
 
     .mascot {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     header h1 {
-        font-size: 20px;
+        font-size: 1.25rem;
     }
 
     .tagline {
-        font-size: 13px;
+        font-size: 0.8125rem;
         text-align: left;
     }
 
     .loader-toggle {
         padding: 12px 15px;
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .loader-content {
@@ -809,13 +1075,13 @@ header h1 {
 
     .time-progress-info {
         min-width: 120px;
-        font-size: 12px;
+        font-size: 0.75rem;
     }
 
     .duration-input {
         width: 50px;
         padding: 5px 6px;
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .input-group {
@@ -826,12 +1092,30 @@ header h1 {
     .article-input {
         min-width: unset;
         padding: 9px 10px;
-        font-size: 16px;
+        font-size: 1rem;
     }
 
     .btn {
         padding: 9px 14px;
-        font-size: 13px;
+        font-size: 0.8125rem;
+    }
+
+    /* Mobile cursor marker improvements */
+    .target-cursor-time {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        top: -22px;
+        line-height: 1.2;
+    }
+
+    .target-cursor-flag {
+        width: 10px;
+        height: 10px;
+        left: -5px;
+    }
+
+    .target-cursor-line {
+        width: 3px;
     }
 
     .article-section {
@@ -846,11 +1130,11 @@ header h1 {
     }
 
     .timer {
-        font-size: 40px;
+        font-size: 2.5rem;
     }
 
     .timer-label {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     .control-panel {
@@ -873,7 +1157,7 @@ header h1 {
     }
 
     .settings label {
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .slider {
@@ -885,7 +1169,7 @@ header h1 {
     }
 
     .progress-info {
-        font-size: 11px;
+        font-size: 0.6875rem;
         padding: 8px;
     }
 
@@ -895,7 +1179,7 @@ header h1 {
     }
 
     .footer-disclaimer p {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     .references-section {
@@ -904,12 +1188,12 @@ header h1 {
     }
 
     .references-section h3 {
-        font-size: 14px;
+        font-size: 0.875rem;
         margin-bottom: 12px;
     }
 
     .references-list {
-        font-size: 12px;
+        font-size: 0.75rem;
         padding-left: 18px;
     }
 
@@ -938,21 +1222,21 @@ header h1 {
     }
 
     .mascot {
-        font-size: 10px;
+        font-size: 0.625rem;
     }
 
     header h1 {
-        font-size: 18px;
+        font-size: 1.125rem;
     }
 
     .tagline {
-        font-size: 12px;
+        font-size: 0.75rem;
         text-align: center;
     }
 
     .loader-toggle {
         padding: 10px 12px;
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .loader-content {
@@ -961,7 +1245,7 @@ header h1 {
 
     .theme-toggle {
         padding: 6px;
-        font-size: 20px;
+        font-size: 1.25rem;
     }
 
     .article-loader {
@@ -970,7 +1254,7 @@ header h1 {
     }
 
     .article-loader h2 {
-        font-size: 15px;
+        font-size: 0.9375rem;
         margin-bottom: 10px;
     }
 
@@ -980,11 +1264,11 @@ header h1 {
 
     .article-input {
         padding: 8px 10px;
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .article-title {
-        font-size: 16px;
+        font-size: 1rem;
         padding: 10px;
         margin-top: 8px;
     }
@@ -1002,7 +1286,7 @@ header h1 {
     }
 
     .article-intro {
-        font-size: 12px;
+        font-size: 0.75rem;
         margin-bottom: 15px !important;
     }
 
@@ -1020,12 +1304,12 @@ header h1 {
     }
 
     .timer {
-        font-size: 32px;
+        font-size: 2rem;
         margin-bottom: 3px;
     }
 
     .timer-label {
-        font-size: 10px;
+        font-size: 0.625rem;
     }
 
     .control-panel {
@@ -1040,7 +1324,7 @@ header h1 {
 
     .btn {
         padding: 9px 12px;
-        font-size: 12px;
+        font-size: 0.75rem;
         width: 100%;
         border-radius: 3px;
     }
@@ -1050,7 +1334,7 @@ header h1 {
     }
 
     .settings label {
-        font-size: 12px;
+        font-size: 0.75rem;
     }
 
     .slider {
@@ -1059,12 +1343,12 @@ header h1 {
     }
 
     #speedValue {
-        font-size: 12px;
+        font-size: 0.75rem;
         min-width: 50px;
     }
 
     .progress-info {
-        font-size: 10px;
+        font-size: 0.625rem;
         padding: 6px;
     }
 
@@ -1074,7 +1358,7 @@ header h1 {
     }
 
     .footer-disclaimer p {
-        font-size: 10px;
+        font-size: 0.625rem;
     }
 
     .references-section {
@@ -1083,12 +1367,12 @@ header h1 {
     }
 
     .references-section h3 {
-        font-size: 13px;
+        font-size: 0.8125rem;
         margin-bottom: 10px;
     }
 
     .references-list {
-        font-size: 11px;
+        font-size: 0.6875rem;
         padding-left: 16px;
         line-height: 1.6;
     }
@@ -1111,19 +1395,19 @@ header h1 {
 /* Extra Small Mobile */
 @media (max-width: 360px) {
     header h1 {
-        font-size: 16px;
+        font-size: 1rem;
     }
 
     .timer {
-        font-size: 28px;
+        font-size: 1.75rem;
     }
 
     .article-input {
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .btn {
         padding: 8px 10px;
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 }

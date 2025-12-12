@@ -495,6 +495,35 @@ class FontSizeManager {
 }
 
 // ============================================================
+// MESH MODE MANAGER
+// ============================================================
+
+class MeshModeManager {
+    constructor() {
+        this.currentMode = localStorage.getItem('meshMode') || 'off';
+        this.applyMeshMode(this.currentMode);
+    }
+
+    toggle() {
+        this.currentMode = this.currentMode === 'off' ? 'on' : 'off';
+        this.applyMeshMode(this.currentMode);
+        this.updateMeshIcon();
+    }
+
+    applyMeshMode(mode) {
+        document.documentElement.setAttribute('data-mesh-mode', mode);
+        localStorage.setItem('meshMode', mode);
+    }
+
+    updateMeshIcon() {
+        const icon = document.querySelector('.mesh-icon');
+        if (icon) {
+            icon.textContent = this.currentMode === 'on' ? '✨' : '✨';
+        }
+    }
+}
+
+// ============================================================
 // UI CONTROLLER
 // ============================================================
 
@@ -502,6 +531,7 @@ class UIController {
     constructor() {
         this.themeManager = new ThemeManager();
         this.fontSizeManager = new FontSizeManager();
+        this.meshModeManager = new MeshModeManager();
         this.parser = new SyllableParser();
         this.engine = null;
         this.articleContent = null;
@@ -527,6 +557,9 @@ class UIController {
         // Initialize progress marks
         this.updateProgressMarks();
 
+        // Initialize time progress display (before article loads)
+        this.initTimeProgressDisplay();
+
         this.attachEventListeners();
         this.loadFeaturedArticleOnInit();
     }
@@ -545,6 +578,7 @@ class UIController {
     initElements() {
         this.elements = {
             themeToggle: document.getElementById('themeToggle'),
+            meshToggle: document.getElementById('meshToggle'),
             loaderToggle: document.getElementById('loaderToggle'),
             loaderContent: document.getElementById('loaderContent'),
             articleInput: document.getElementById('articleInput'),
@@ -572,6 +606,10 @@ class UIController {
     attachEventListeners() {
         this.elements.themeToggle.addEventListener('click', () => {
             this.themeManager.toggle();
+        });
+
+        this.elements.meshToggle.addEventListener('click', () => {
+            this.meshModeManager.toggle();
         });
 
         this.elements.loaderToggle.addEventListener('click', () => {
@@ -616,6 +654,8 @@ class UIController {
             if (this.engine) {
                 this.engine.setSpeed(speed);
             }
+            // Update target marker when speed changes
+            this.updateTargetMarker();
         });
 
         this.elements.durationControl.addEventListener('input', (e) => {
@@ -624,9 +664,13 @@ class UIController {
             localStorage.setItem('targetDuration', this.targetDuration.toString());
             // Update progress marks for new duration
             this.updateProgressMarks();
-            // Update progress display if timer is running
+            // Update target marker for new duration
+            this.updateTargetMarker();
+            // Update progress display (works both before and during practice)
             if (this.engine) {
                 this.updateTimeProgress();
+            } else {
+                this.initTimeProgressDisplay();
             }
         });
 
@@ -920,6 +964,9 @@ class UIController {
         this.elements.pauseBtn.disabled = true;
         this.elements.resetBtn.disabled = false;
         this.updateProgressInfo();
+
+        // Update target marker for new article
+        this.updateTargetMarker();
     }
 
     async updateArticleContent(updatedArticle) {
@@ -1035,6 +1082,10 @@ class UIController {
 
         this.elements.resetBtn.disabled = false;
         this.updateProgressInfo();
+
+        // Update target marker for updated article
+        this.updateTargetMarker();
+
         this.showLoading(false);
     }
 
@@ -1131,6 +1182,17 @@ class UIController {
         this.updateTimeProgress();
     }
 
+    initTimeProgressDisplay() {
+        // Initialize time progress display before engine starts
+        // Shows "0:00 / 10:00 (0%)" based on target duration
+        const targetMinutes = Math.floor(this.targetDuration / 60000);
+        const targetSeconds = Math.floor((this.targetDuration % 60000) / 1000);
+        const targetFormatted = `${targetMinutes}:${String(targetSeconds).padStart(2, '0')}`;
+
+        this.elements.timeProgressFill.style.width = '0%';
+        this.elements.timeProgressText.textContent = `0:00 / ${targetFormatted} (0%)`;
+    }
+
     updateTimeProgress() {
         if (!this.engine) return;
 
@@ -1186,6 +1248,75 @@ class UIController {
 
             this.elements.timeProgressMarks.appendChild(mark);
         }
+    }
+
+    updateTargetMarker() {
+        // Calculate and display the target position marker in text
+        // Shows where in the text the user needs to read to hit their target time
+        if (!this.engine || !this.engine.syllables || this.engine.syllables.length === 0) {
+            // Remove marker if no article loaded
+            this.removeInTextTargetMarker();
+            return;
+        }
+
+        // Get current speed (ms per syllable)
+        const timePerSyllable = parseInt(this.elements.speedControl.value);
+
+        // Calculate how many syllables can be read in target duration
+        const targetSyllables = this.targetDuration / timePerSyllable;
+
+        // Update in-text marker
+        this.updateInTextTargetMarker(Math.floor(targetSyllables));
+    }
+
+    updateInTextTargetMarker(targetSyllableIndex) {
+        // Remove any existing in-text marker
+        this.removeInTextTargetMarker();
+
+        // Get current speed for time calculation
+        const timePerSyllable = parseInt(this.elements.speedControl.value);
+        let actualIndex = targetSyllableIndex;
+        let displayTime;
+
+        // Check if target is beyond the text length
+        if (targetSyllableIndex >= this.syllableCache.length) {
+            // Put cursor at the end and show actual achievable time
+            actualIndex = this.syllableCache.length - 1;
+            const actualDuration = this.syllableCache.length * timePerSyllable;
+            displayTime = this.formatTime(actualDuration);
+        } else {
+            // Show the target time
+            displayTime = this.formatTime(this.targetDuration);
+        }
+
+        // Get the syllable element at the actual position
+        const targetSyllableElement = this.syllableCache[actualIndex];
+        if (!targetSyllableElement) {
+            return;
+        }
+
+        // Create Google Sheets-style cursor marker with time label
+        const marker = document.createElement('span');
+        marker.className = 'target-position-marker';
+        marker.setAttribute('data-target-marker', 'true');
+        marker.innerHTML = `<span class="target-cursor"><span class="target-cursor-time">${displayTime}</span><span class="target-cursor-flag"></span><span class="target-cursor-line"></span></span>`;
+
+        // Insert marker after the target syllable
+        targetSyllableElement.parentNode.insertBefore(marker, targetSyllableElement.nextSibling);
+    }
+
+    formatTime(milliseconds) {
+        // Format time as M:SS or MM:SS
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    removeInTextTargetMarker() {
+        // Remove any existing in-text target markers
+        const existingMarkers = document.querySelectorAll('[data-target-marker="true"]');
+        existingMarkers.forEach(marker => marker.remove());
     }
 
     updateProgressInfo() {

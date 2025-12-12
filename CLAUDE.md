@@ -48,13 +48,26 @@ The application uses a **modular class-based architecture** with clear separatio
    - Tracks elapsed time and progress percentage
    - Callbacks: `onSyllableChange(index, syllable)` and `onComplete()`
 
-5. **ThemeManager** (lines 432-462)
+5. **ThemeManager** (lines 432-474)
    - Light/dark mode toggle with persistence
    - Uses `data-theme` attribute on `<html>` element
    - localStorage persistence
    - Respects system `prefers-color-scheme` on first load
 
-6. **UIController** (lines 468-1135)
+6. **FontSizeManager** (lines 480-495)
+   - Font size control with 4 preset sizes (small, medium, large, xlarge)
+   - Uses CSS custom property `--font-scale` for scaling
+   - localStorage persistence
+   - Applies to entire app via `data-font-size` attribute
+
+7. **MeshModeManager** (lines 501-524)
+   - Optional mesh gradient background mode (social media aesthetic)
+   - Glassmorphism effects for all sections when enabled
+   - Uses `data-mesh-mode` attribute on `<html>` element
+   - localStorage persistence
+   - Works with both light and dark themes
+
+8. **UIController** (lines 530-1300+)
    - Orchestrates all components and user interactions
    - `loadFeaturedArticleOnInit()` - Auto-loads featured article immediately
    - `loadArticleByTitle(input)` - URL parsing regex extracts titles from Wikipedia URLs
@@ -63,13 +76,13 @@ The application uses a **modular class-based architecture** with clear separatio
    - `prefetchTomorrowArticle()` - Predictive caching for next-day instant loads
    - **Performance:** Syllable element caching in `this.syllableCache` array
 
-7. **PerformanceMonitor** (lines 1140-1186)
+9. **PerformanceMonitor** (lines 1140-1186)
    - Comprehensive timing instrumentation
    - Tracks page load, API fetch, parsing, rendering durations
    - Console logging with visual reports
    - Exports data to test harness via postMessage
 
-8. **Service Worker Registration** (lines 1195-1236)
+10. **Service Worker Registration** (lines 1195-1236)
    - Registers `/service-worker.js` for offline support
    - Handles SW updates and lifecycle events
    - Graceful fallback if SW not supported
@@ -119,6 +132,37 @@ The application uses a **modular class-based architecture** with clear separatio
 - Uses `requestAnimationFrame()` to prevent UI blocking
 - 10,000 syllables: ~400ms vs 2.5s blocking (6x faster)
 
+### Target Time Marker
+
+**Purpose:** Shows users exactly where in the text they need to read to hit their target practice duration.
+
+**Visual Design:**
+- Google Sheets-style cursor with orange flag and vertical line
+- Time label above cursor (e.g., "10:00")
+- Pulsing animation for visibility
+- Positioned inline in article text
+
+**Smart Behavior:**
+- **Normal case**: Shows target time at calculated syllable position
+  - Calculation: `targetSyllables = targetDuration / syllableSpeed`
+  - Example: 10 min ÷ 1.5s/syllable = 400 syllables
+- **Short text case**: If text doesn't have enough syllables
+  - Cursor moves to END of text
+  - Shows actual achievable time (not target)
+  - Example: Only 200 syllables available = shows "5:00" not "10:00"
+
+**Dynamic Updates:**
+- Recalculates when speed slider changes
+- Recalculates when target duration changes
+- Updates when new article loads
+- Syncs with time progress bar
+
+**Implementation:**
+- `updateTargetMarker()` - Calculates and positions cursor (app.js:1202-1219)
+- `updateInTextTargetMarker()` - Creates/updates cursor element (app.js:1221-1255)
+- `formatTime()` - Formats milliseconds to M:SS (app.js:1257-1263)
+- CSS styling with theme and mesh mode support (styles.css:700-764)
+
 **Syllable Element Caching:**
 - Elements cached in `this.syllableCache` array by index
 - O(1) access during highlighting vs O(n) DOM queries
@@ -143,6 +187,39 @@ See `PERFORMANCE_OPTIMIZATIONS.md` for complete technical details.
 - Uses "prolonged speech" throughout (not "droning")
 - References PacingEngine (not DroningEngine)
 - Footer includes evidence-based citation links [1][2][3]
+
+### Mesh Gradient Mode
+
+**Purpose:** Optional modern, social-media-inspired aesthetic with animated gradient background.
+
+**Activation:**
+- Toggle button (✨) in header next to theme toggle
+- Stores preference in localStorage
+- Works with both light and dark themes (4 total combinations)
+
+**Visual Features:**
+- **Animated mesh gradient background** (15s infinite shift)
+  - Light mode: Purple/pink/blue gradient base
+  - Dark mode: Dark navy gradient base
+  - 5 layered radial gradients for organic feel
+- **Glassmorphism effects** on all sections
+  - Semi-transparent backgrounds with backdrop blur
+  - Subtle borders and shadows
+  - Enhanced text contrast with shadows
+- **Enhanced visibility** for all UI elements
+  - Progress tick marks brighter with shadows
+  - Loading spinner with glow effect
+  - All text has shadow for readability
+
+**Implementation:**
+- Background: `styles.css:174-206` (animated gradients)
+- Glassmorphism: `styles.css:208-252` (section styling)
+- Toggle: `index.html:38-40`, `app.js:501-524`
+
+**Color Palette:**
+- Blueviolet (#8a2be2), Deep Pink (#ff1493), Deep Sky Blue (#00bfff)
+- Hot Pink (#ff69b4), Base gradient (#667eea → #764ba2)
+- Dark mode: Navy gradient (#1a1a2e → #16213e)
 
 ## Styling System
 

@@ -11,12 +11,15 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Prevent flash of unstyled content by setting theme and font size early
+        // Prevent flash of unstyled content by setting theme, font size, and mesh mode early
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         const savedFontSize = localStorage.getItem('fontSize') || 'medium';
         document.documentElement.setAttribute('data-font-size', savedFontSize);
+
+        const savedMeshMode = localStorage.getItem('meshMode') || 'off';
+        document.documentElement.setAttribute('data-mesh-mode', savedMeshMode);
     </script>
 </head>
 <body>
@@ -34,9 +37,14 @@
                     <p class="tagline">Practice prolonged speech with paced articles</p>
                 </div>
             </div>
-            <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
-                <span class="theme-icon">🌙</span>
-            </button>
+            <div class="header-toggles">
+                <button id="meshToggle" class="mesh-toggle" aria-label="Toggle mesh gradient mode">
+                    <span class="mesh-icon">✨</span>
+                </button>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
         </header>
 
         <!-- Article Loader and Quickstart Wrapper -->
@@ -51,9 +59,10 @@
                     <input
                         type="text"
                         id="articleInput"
-                        placeholder="Article title or URL"
+                        placeholder="e.g., 'Albert Einstein' or paste Wikipedia URL"
                         class="article-input"
                         autocomplete="off"
+                        aria-label="Enter Wikipedia article title or URL"
                     >
                     <button id="loadCustomBtn" class="btn btn-primary">Load Article</button>
                 </div>
