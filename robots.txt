@@ -1,0 +1,6 @@
+# Magpie Talk - Speech Practice Tool
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://bryancraven.github.io/magpie-talk/sitemap.xml
