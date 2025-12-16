@@ -703,7 +703,6 @@ class UIController {
     }
 
     async loadFeaturedArticle() {
-        const loadingStartTime = Date.now();
         console.log('Starting to load featured article...');
         perfMon.start('Total: Load Featured Article');
 
@@ -781,18 +780,12 @@ class UIController {
                 }
             }, 1000);
         } finally {
-            // Ensure loading indicator shows for at least 300ms for visibility
-            const elapsed = Date.now() - loadingStartTime;
-            if (elapsed < 300) {
-                await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
-            }
             this.showLoading(false);
             this.disableLoadButtons(false);
         }
     }
 
     async loadArticleByTitle(input) {
-        const loadingStartTime = Date.now();
         const originalButtonText = this.elements.loadCustomBtn.textContent;
         console.log('Loading article by title/URL:', input);
 
@@ -841,11 +834,6 @@ class UIController {
 
             this.showError(errorMessage);
         } finally {
-            // Ensure loading indicator shows for at least 300ms for visibility
-            const elapsed = Date.now() - loadingStartTime;
-            if (elapsed < 300) {
-                await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
-            }
             this.showLoading(false);
             this.disableLoadButtons(false);
             this.elements.loadCustomBtn.textContent = originalButtonText;
@@ -1356,8 +1344,19 @@ class UIController {
             if (loadingText) {
                 loadingText.textContent = message;
             }
-            this.elements.loadingIndicator.classList.remove('hidden');
+            // Delay showing spinner by 150ms to avoid flash for fast cached loads
+            if (this.loadingShowTimeout) {
+                clearTimeout(this.loadingShowTimeout);
+            }
+            this.loadingShowTimeout = setTimeout(() => {
+                this.elements.loadingIndicator.classList.remove('hidden');
+            }, 150);
         } else {
+            // Cancel pending show if load completed quickly
+            if (this.loadingShowTimeout) {
+                clearTimeout(this.loadingShowTimeout);
+                this.loadingShowTimeout = null;
+            }
             this.elements.loadingIndicator.classList.add('hidden');
         }
     }
