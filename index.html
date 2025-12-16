@@ -108,53 +108,52 @@
 
         <!-- Control Panel -->
         <section class="control-panel">
-            <div class="timer-section">
-                <div class="timer" id="timer">00:00</div>
-                <p class="timer-label">Elapsed Time</p>
-            </div>
+            <div class="control-panel-grid">
+                <!-- Timer Column -->
+                <div class="timer-section">
+                    <div class="timer" id="timer">00:00</div>
+                    <p class="timer-label">Elapsed Time</p>
+                </div>
 
-            <div class="controls">
-                <button id="startBtn" class="btn btn-primary" disabled aria-label="Start syllable practice">Start</button>
-                <button id="pauseBtn" class="btn btn-secondary" disabled aria-label="Pause or resume practice">Pause</button>
-                <button id="resetBtn" class="btn btn-secondary" aria-label="Reset practice to beginning">Reset</button>
-            </div>
+                <!-- Controls Column -->
+                <div class="controls-section">
+                    <div class="controls">
+                        <button id="startBtn" class="btn btn-primary" disabled aria-label="Start syllable practice">Start</button>
+                        <button id="pauseBtn" class="btn btn-secondary" disabled aria-label="Pause or resume practice">Pause</button>
+                        <button id="resetBtn" class="btn btn-secondary" aria-label="Reset practice to beginning">Reset</button>
+                    </div>
+                </div>
 
-            <div class="settings">
-                <label for="speedControl">Syllable Duration (ms):</label>
-                <input
-                    type="range"
-                    id="speedControl"
-                    min="500"
-                    max="2000"
-                    value="1500"
-                    step="100"
-                    class="slider"
-                >
-                <span id="speedValue">1500ms</span>
-            </div>
+                <!-- Settings Column -->
+                <div class="settings-section">
+                    <div class="setting-row">
+                        <label for="speedControl">Syllable Duration</label>
+                        <div class="setting-control">
+                            <input type="range" id="speedControl" min="500" max="2000" value="1500" step="100" class="slider">
+                            <span id="speedValue" class="setting-value">1500ms</span>
+                        </div>
+                    </div>
 
-            <div class="settings">
-                <label for="durationControl">Target Duration:</label>
-                <input
-                    type="number"
-                    id="durationControl"
-                    min="1"
-                    max="60"
-                    value="10"
-                    step="1"
-                    class="duration-input"
-                >
-                <span>minutes</span>
-            </div>
+                    <div class="setting-row">
+                        <label for="durationControl">Target Duration</label>
+                        <div class="setting-control">
+                            <input type="number" id="durationControl" min="1" max="60" value="10" step="1" class="duration-input">
+                            <span class="setting-unit">min</span>
+                        </div>
+                    </div>
 
-            <div class="settings">
-                <label for="fontSizeControl">Font Size:</label>
-                <select id="fontSizeControl" class="font-size-select">
-                    <option value="small">Small</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="large">Large</option>
-                    <option value="xlarge">Extra Large</option>
-                </select>
+                    <div class="setting-row">
+                        <label for="fontSizeControl">Font Size</label>
+                        <div class="setting-control">
+                            <select id="fontSizeControl" class="font-size-select">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                                <option value="xlarge">Extra Large</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 

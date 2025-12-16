@@ -387,37 +387,40 @@ header h1 {
 
 /* Duration Input */
 .duration-input {
-    width: 60px;
-    padding: 6px 8px;
+    width: 52px;
+    padding: 4px 6px;
     border: 1px solid var(--input-border);
     border-radius: 4px;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
 }
 
 .duration-input:focus {
     outline: none;
     border-color: var(--btn-primary-bg);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
 }
 
 /* Font Size Select */
 .font-size-select {
-    padding: 6px 8px;
+    padding: 4px 8px;
     border: 1px solid var(--input-border);
     border-radius: 4px;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     cursor: pointer;
+    font-weight: 500;
 }
 
 .font-size-select:focus {
     outline: none;
     border-color: var(--btn-primary-bg);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
 }
 
 .loader-toggle {
@@ -817,57 +820,104 @@ header h1 {
 /* Control Panel */
 .control-panel {
     background-color: var(--bg-secondary);
-    padding: 20px;
+    padding: 24px;
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
 }
 
+.control-panel-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 32px;
+    align-items: center;
+}
+
+/* Timer Section */
 .timer-section {
     text-align: center;
-    margin-bottom: 20px;
+    padding: 8px 24px;
+    border-right: 1px solid var(--border-color);
 }
 
 .timer {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 700;
     font-family: 'Courier New', monospace;
     color: var(--btn-primary-bg);
-    margin-bottom: 5px;
+    line-height: 1;
+    margin-bottom: 4px;
 }
 
 .timer-label {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     margin: 0;
+    font-weight: 500;
+}
+
+/* Controls Section */
+.controls-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .controls {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     justify-content: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
 }
 
-.settings {
+/* Settings Section */
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-left: 24px;
+    border-left: 1px solid var(--border-color);
+    min-width: 220px;
+}
+
+.setting-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.settings label {
-    font-size: 0.875rem;
+.setting-row label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.setting-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-value {
+    min-width: 52px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    text-align: right;
+}
+
+.setting-unit {
+    font-size: 0.75rem;
     color: var(--text-secondary);
     font-weight: 500;
 }
 
 .slider {
-    width: 200px;
+    width: 100px;
     cursor: pointer;
     accent-color: var(--btn-primary-bg);
 }
@@ -875,12 +925,6 @@ header h1 {
 .slider:focus {
     outline: 2px solid var(--btn-primary-bg);
     outline-offset: 2px;
-}
-
-#speedValue {
-    min-width: 60px;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
 }
 
 /* Progress Info */
@@ -1129,43 +1173,70 @@ header h1 {
         font-size: 1rem;
     }
 
+    /* Control Panel - Tablet/Mobile */
+    .control-panel {
+        padding: 16px;
+    }
+
+    .control-panel-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .timer-section {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px 0 16px 0;
+    }
+
     .timer {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
     }
 
     .timer-label {
-        font-size: 0.6875rem;
+        font-size: 0.625rem;
     }
 
-    .control-panel {
-        padding: 15px;
+    .controls-section {
+        padding: 0;
     }
 
     .controls {
-        flex-direction: column;
+        flex-direction: row;
         gap: 8px;
-    }
-
-    .btn {
         width: 100%;
-        padding: 10px;
     }
 
-    .settings {
-        flex-direction: column;
-        gap: 12px;
+    .controls .btn {
+        flex: 1;
+        padding: 10px 12px;
     }
 
-    .settings label {
-        font-size: 0.8125rem;
+    .settings-section {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0;
+        padding-top: 16px;
+        min-width: unset;
+        gap: 10px;
+    }
+
+    .setting-row {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .setting-row label {
+        font-size: 0.75rem;
     }
 
     .slider {
-        width: 100%;
+        width: 80px;
     }
 
-    #speedValue {
-        text-align: center;
+    .setting-value {
+        font-size: 0.75rem;
+        min-width: 48px;
     }
 
     .progress-info {
@@ -1299,52 +1370,66 @@ header h1 {
         font-weight: 700;
     }
 
-    .timer-section {
-        margin-bottom: 15px;
-    }
-
-    .timer {
-        font-size: 2rem;
-        margin-bottom: 3px;
-    }
-
-    .timer-label {
-        font-size: 0.625rem;
-    }
-
+    /* Control Panel - Small Mobile */
     .control-panel {
         padding: 12px;
         margin-bottom: 12px;
         border-radius: 6px;
     }
 
+    .control-panel-grid {
+        gap: 12px;
+    }
+
+    .timer-section {
+        padding: 4px 0 12px 0;
+    }
+
+    .timer {
+        font-size: 1.875rem;
+    }
+
+    .timer-label {
+        font-size: 0.5625rem;
+    }
+
     .controls {
         gap: 6px;
     }
 
-    .btn {
-        padding: 9px 12px;
+    .controls .btn {
+        padding: 9px 8px;
         font-size: 0.75rem;
-        width: 100%;
-        border-radius: 3px;
+        border-radius: 4px;
     }
 
-    .settings {
-        gap: 10px;
+    .settings-section {
+        padding-top: 12px;
+        gap: 8px;
     }
 
-    .settings label {
-        font-size: 0.75rem;
+    .setting-row label {
+        font-size: 0.6875rem;
     }
 
     .slider {
-        width: 100%;
-        height: 4px;
+        width: 70px;
     }
 
-    #speedValue {
+    .setting-value,
+    .setting-unit {
+        font-size: 0.6875rem;
+    }
+
+    .duration-input {
+        width: 48px;
+        padding: 5px 4px;
         font-size: 0.75rem;
-        min-width: 50px;
+    }
+
+    .font-size-select {
+        padding: 5px 6px;
+        font-size: 0.75rem;
     }
 
     .progress-info {
@@ -1399,7 +1484,29 @@ header h1 {
     }
 
     .timer {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+    }
+
+    .timer-label {
+        font-size: 0.5rem;
+    }
+
+    .controls .btn {
+        padding: 8px 6px;
+        font-size: 0.6875rem;
+    }
+
+    .setting-row label {
+        font-size: 0.625rem;
+    }
+
+    .slider {
+        width: 60px;
+    }
+
+    .setting-value,
+    .setting-unit {
+        font-size: 0.625rem;
     }
 
     .article-input {
