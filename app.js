@@ -684,14 +684,20 @@ class UIController {
             this.fontSizeManager.setSize(fontSize);
         });
 
-        // Keyboard shortcut: space to pause/resume (but not when typing in input)
+        // Keyboard shortcut: space to start/pause/resume (but not when typing in input)
         document.addEventListener('keydown', (e) => {
             // Don't trigger if user is typing in an input field
-            const isFocusedOnInput = document.activeElement === this.elements.articleInput;
+            const isFocusedOnInput = document.activeElement === this.elements.articleInput ||
+                                     document.activeElement === this.elements.durationControl;
 
-            if (e.code === 'Space' && this.engine && !isFocusedOnInput) {
+            if (e.code === 'Space' && !isFocusedOnInput) {
                 e.preventDefault();
-                this.togglePause();
+                // If practice hasn't started but article is loaded, start it
+                if (!this.elements.startBtn.disabled && !this.engine) {
+                    this.startPractice();
+                } else if (this.engine) {
+                    this.togglePause();
+                }
             }
         });
     }
@@ -1359,11 +1365,23 @@ class UIController {
     showError(message) {
         this.elements.errorMessage.textContent = message;
         this.elements.errorMessage.classList.remove('hidden');
+
+        // Auto-dismiss error after 10 seconds
+        if (this.errorDismissTimeout) {
+            clearTimeout(this.errorDismissTimeout);
+        }
+        this.errorDismissTimeout = setTimeout(() => {
+            this.clearError();
+        }, 10000);
     }
 
     clearError() {
         this.elements.errorMessage.classList.add('hidden');
         this.elements.errorMessage.textContent = '';
+        if (this.errorDismissTimeout) {
+            clearTimeout(this.errorDismissTimeout);
+            this.errorDismissTimeout = null;
+        }
     }
 
     disableLoadButtons(disabled) {
