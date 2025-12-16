@@ -502,6 +502,7 @@ class MeshModeManager {
     constructor() {
         this.currentMode = localStorage.getItem('meshMode') || 'off';
         this.applyMeshMode(this.currentMode);
+        this.updateMeshIcon();
     }
 
     toggle() {
@@ -517,8 +518,12 @@ class MeshModeManager {
 
     updateMeshIcon() {
         const icon = document.querySelector('.mesh-icon');
+        const btn = document.getElementById('meshToggle');
         if (icon) {
-            icon.textContent = this.currentMode === 'on' ? '✨' : '✨';
+            icon.textContent = this.currentMode === 'on' ? '✨' : '⭐';
+        }
+        if (btn) {
+            btn.setAttribute('aria-pressed', this.currentMode === 'on');
         }
     }
 }
