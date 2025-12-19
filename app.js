@@ -529,6 +529,434 @@ class MeshModeManager {
 }
 
 // ============================================================
+// AUTH MANAGER
+// ============================================================
+
+class AuthManager {
+    constructor(onAuthStateChange) {
+        this.user = null;
+        this.onAuthStateChange = onAuthStateChange || (() => {});
+        this.initAuth();
+    }
+
+    initAuth() {
+        // Check if Firebase is available
+        if (typeof firebase === 'undefined' || !firebase.auth) {
+            console.warn('Firebase Auth not available');
+            return;
+        }
+
+        // Listen for auth state changes
+        firebase.auth().onAuthStateChanged((user) => {
+            this.user = user;
+            this.onAuthStateChange(user);
+
+            if (user) {
+                console.log('User signed in:', user.displayName);
+            } else {
+                console.log('User signed out');
+            }
+        });
+    }
+
+    async signIn() {
+        if (typeof firebase === 'undefined') {
+            console.error('Firebase not available');
+            return null;
+        }
+
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            // Use popup for desktop, redirect for mobile
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                await firebase.auth().signInWithRedirect(provider);
+                return null; // Will be handled on redirect back
+            } else {
+                const result = await firebase.auth().signInWithPopup(provider);
+                return result.user;
+            }
+        } catch (error) {
+            console.error('Sign-in error:', error);
+
+            // Handle specific errors gracefully
+            if (error.code === 'auth/popup-closed-by-user') {
+                return null; // User cancelled, not an error
+            }
+            throw error;
+        }
+    }
+
+    async signOut() {
+        if (typeof firebase === 'undefined') return;
+
+        try {
+            await firebase.auth().signOut();
+        } catch (error) {
+            console.error('Sign-out error:', error);
+            throw error;
+        }
+    }
+
+    isSignedIn() {
+        return this.user !== null;
+    }
+
+    getUser() {
+        return this.user;
+    }
+
+    getUserId() {
+        return this.user ? this.user.uid : null;
+    }
+
+    getUserDisplayName() {
+        return this.user ? this.user.displayName : null;
+    }
+
+    getUserPhotoURL() {
+        return this.user ? this.user.photoURL : null;
+    }
+
+    getUserInitial() {
+        if (!this.user) return null;
+        const name = this.user.displayName || this.user.email || '';
+        return name.charAt(0).toUpperCase();
+    }
+}
+
+// ============================================================
+// STATS MANAGER
+// ============================================================
+
+class StatsManager {
+    constructor(authManager) {
+        this.authManager = authManager;
+        this.db = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
+        this.localStats = this.loadLocalStats();
+        this.saveDebounceTimer = null;
+        this.DEBOUNCE_DELAY = 2000; // 2 seconds
+    }
+
+    // Get reference to user's progress document
+    getUserProgressRef() {
+        const uid = this.authManager.getUserId();
+        if (!uid || !this.db) return null;
+        return this.db.collection('users').doc(uid).collection('progress').doc('stats');
+    }
+
+    // Load stats from localStorage
+    loadLocalStats() {
+        try {
+            const stored = localStorage.getItem('magpie_user_stats');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn('Failed to load local stats:', e);
+        }
+        return this.getDefaultStats();
+    }
+
+    // Save stats to localStorage
+    saveLocalStats() {
+        try {
+            localStorage.setItem('magpie_user_stats', JSON.stringify(this.localStats));
+        } catch (e) {
+            console.warn('Failed to save local stats:', e);
+        }
+    }
+
+    // Default stats structure
+    getDefaultStats() {
+        return {
+            totalPracticeSeconds: 0,
+            sessionsCompleted: 0,
+            sessionHistory: [], // Last 100 sessions
+            currentStreak: 0,
+            longestStreak: 0,
+            lastPracticeDate: null,
+            preferences: {
+                syllableDuration: 1500,
+                targetDuration: 10,
+                fontSize: 'medium',
+                theme: 'light'
+            }
+        };
+    }
+
+    // Get today's date as YYYY-MM-DD string
+    getTodayString() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    // Calculate streak based on last practice date
+    calculateStreak(stats) {
+        if (!stats.lastPracticeDate) {
+            return { currentStreak: 0, longestStreak: stats.longestStreak || 0 };
+        }
+
+        const today = new Date(this.getTodayString());
+        const lastPractice = new Date(stats.lastPracticeDate);
+        const diffDays = Math.floor((today - lastPractice) / (1000 * 60 * 60 * 24));
+
+        let currentStreak = stats.currentStreak || 0;
+
+        if (diffDays === 0) {
+            // Practiced today, streak continues
+        } else if (diffDays === 1) {
+            // Practiced yesterday, streak continues when they practice today
+        } else {
+            // Gap of more than 1 day, streak broken
+            currentStreak = 0;
+        }
+
+        return {
+            currentStreak,
+            longestStreak: Math.max(currentStreak, stats.longestStreak || 0)
+        };
+    }
+
+    // Record a completed practice session
+    async recordSession(durationSeconds, articleTitle) {
+        const today = this.getTodayString();
+
+        // Update local stats first
+        this.localStats.totalPracticeSeconds += durationSeconds;
+        this.localStats.sessionsCompleted += 1;
+
+        // Update streak
+        const lastDate = this.localStats.lastPracticeDate;
+        if (!lastDate) {
+            // First session ever
+            this.localStats.currentStreak = 1;
+        } else {
+            const lastPractice = new Date(lastDate);
+            const todayDate = new Date(today);
+            const diffDays = Math.floor((todayDate - lastPractice) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) {
+                // Already practiced today, streak unchanged
+            } else if (diffDays === 1) {
+                // Practiced yesterday, increment streak
+                this.localStats.currentStreak += 1;
+            } else {
+                // Gap, reset streak to 1
+                this.localStats.currentStreak = 1;
+            }
+        }
+
+        // Update longest streak
+        this.localStats.longestStreak = Math.max(
+            this.localStats.currentStreak,
+            this.localStats.longestStreak || 0
+        );
+
+        // Update last practice date
+        this.localStats.lastPracticeDate = today;
+
+        // Add to session history (keep last 100)
+        this.localStats.sessionHistory.unshift({
+            date: today,
+            durationSeconds,
+            articleTitle: articleTitle || 'Unknown'
+        });
+        if (this.localStats.sessionHistory.length > 100) {
+            this.localStats.sessionHistory = this.localStats.sessionHistory.slice(0, 100);
+        }
+
+        // Save locally immediately
+        this.saveLocalStats();
+
+        // Debounced save to cloud if signed in
+        if (this.authManager.isSignedIn()) {
+            this.debouncedCloudSave();
+        }
+    }
+
+    // Debounced save to Firestore
+    debouncedCloudSave() {
+        if (this.saveDebounceTimer) {
+            clearTimeout(this.saveDebounceTimer);
+        }
+
+        this.saveDebounceTimer = setTimeout(() => {
+            this.saveToCloud();
+        }, this.DEBOUNCE_DELAY);
+    }
+
+    // Save stats to Firestore
+    async saveToCloud() {
+        const ref = this.getUserProgressRef();
+        if (!ref) return;
+
+        try {
+            await ref.set(this.localStats, { merge: true });
+            console.log('Stats saved to cloud');
+        } catch (error) {
+            console.error('Failed to save stats to cloud:', error);
+        }
+    }
+
+    // Load stats from Firestore
+    async loadFromCloud() {
+        const ref = this.getUserProgressRef();
+        if (!ref) return null;
+
+        try {
+            const doc = await ref.get();
+            if (doc.exists) {
+                return doc.data();
+            }
+        } catch (error) {
+            console.error('Failed to load stats from cloud:', error);
+        }
+        return null;
+    }
+
+    // Merge cloud and local stats (cloud wins for totals, merge history)
+    async syncOnSignIn() {
+        const cloudStats = await this.loadFromCloud();
+
+        if (!cloudStats) {
+            // No cloud data, upload local data if there's any
+            if (this.localStats.sessionsCompleted > 0) {
+                await this.saveToCloud();
+            }
+            return;
+        }
+
+        // Merge strategy: take higher values, combine history
+        this.localStats.totalPracticeSeconds = Math.max(
+            this.localStats.totalPracticeSeconds,
+            cloudStats.totalPracticeSeconds || 0
+        );
+        this.localStats.sessionsCompleted = Math.max(
+            this.localStats.sessionsCompleted,
+            cloudStats.sessionsCompleted || 0
+        );
+        this.localStats.longestStreak = Math.max(
+            this.localStats.longestStreak || 0,
+            cloudStats.longestStreak || 0
+        );
+
+        // Merge session history (dedupe by date+duration)
+        const cloudHistory = cloudStats.sessionHistory || [];
+        const localHistory = this.localStats.sessionHistory || [];
+        const mergedHistory = [...cloudHistory];
+
+        for (const localSession of localHistory) {
+            const exists = mergedHistory.some(
+                s => s.date === localSession.date &&
+                     s.durationSeconds === localSession.durationSeconds
+            );
+            if (!exists) {
+                mergedHistory.push(localSession);
+            }
+        }
+
+        // Sort by date descending and keep last 100
+        mergedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+        this.localStats.sessionHistory = mergedHistory.slice(0, 100);
+
+        // Use cloud streak if more recent
+        if (cloudStats.lastPracticeDate) {
+            const cloudDate = new Date(cloudStats.lastPracticeDate);
+            const localDate = this.localStats.lastPracticeDate ?
+                new Date(this.localStats.lastPracticeDate) : new Date(0);
+
+            if (cloudDate >= localDate) {
+                this.localStats.lastPracticeDate = cloudStats.lastPracticeDate;
+                this.localStats.currentStreak = cloudStats.currentStreak || 0;
+            }
+        }
+
+        // Recalculate streak in case of date gap
+        const streakInfo = this.calculateStreak(this.localStats);
+        this.localStats.currentStreak = streakInfo.currentStreak;
+        this.localStats.longestStreak = streakInfo.longestStreak;
+
+        // Merge preferences (cloud wins)
+        this.localStats.preferences = {
+            ...this.localStats.preferences,
+            ...(cloudStats.preferences || {})
+        };
+
+        // Save merged result
+        this.saveLocalStats();
+        await this.saveToCloud();
+    }
+
+    // Save user preferences
+    async savePreferences(prefs) {
+        this.localStats.preferences = {
+            ...this.localStats.preferences,
+            ...prefs
+        };
+        this.saveLocalStats();
+
+        if (this.authManager.isSignedIn()) {
+            this.debouncedCloudSave();
+        }
+    }
+
+    // Get current stats
+    getStats() {
+        // Recalculate streak before returning
+        const streakInfo = this.calculateStreak(this.localStats);
+        return {
+            ...this.localStats,
+            currentStreak: streakInfo.currentStreak,
+            longestStreak: streakInfo.longestStreak
+        };
+    }
+
+    // Get formatted stats for display
+    getFormattedStats() {
+        const stats = this.getStats();
+        const totalMinutes = Math.floor(stats.totalPracticeSeconds / 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        return {
+            totalTime: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
+            totalTimeSeconds: stats.totalPracticeSeconds,
+            sessionsCompleted: stats.sessionsCompleted,
+            currentStreak: stats.currentStreak,
+            longestStreak: stats.longestStreak,
+            lastPracticeDate: stats.lastPracticeDate,
+            recentSessions: stats.sessionHistory.slice(0, 7)
+        };
+    }
+
+    // Get 7-day practice visualization
+    getWeekVisualization() {
+        const today = new Date();
+        const week = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+
+            // Check if there's a session on this date
+            const practiced = this.localStats.sessionHistory.some(
+                s => s.date === dateStr
+            );
+
+            week.push({
+                date: dateStr,
+                dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                practiced
+            });
+        }
+
+        return week;
+    }
+}
+
+// ============================================================
 // UI CONTROLLER
 // ============================================================
 
@@ -537,6 +965,11 @@ class UIController {
         this.themeManager = new ThemeManager();
         this.fontSizeManager = new FontSizeManager();
         this.meshModeManager = new MeshModeManager();
+
+        // Initialize AuthManager with callback for auth state changes
+        this.authManager = new AuthManager((user) => this.onAuthStateChange(user));
+        this.statsManager = new StatsManager(this.authManager);
+
         this.parser = new SyllableParser();
         this.engine = null;
         this.articleContent = null;
@@ -604,7 +1037,23 @@ class UIController {
             timeProgressMarks: document.getElementById('timeProgressMarks'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             errorMessage: document.getElementById('errorMessage'),
-            progressInfo: document.getElementById('progressInfo')
+            progressInfo: document.getElementById('progressInfo'),
+            // Auth & Stats elements
+            authToggle: document.getElementById('authToggle'),
+            authIcon: document.querySelector('.auth-icon'),
+            authAvatar: document.querySelector('.auth-avatar'),
+            authHint: document.getElementById('authHint'),
+            statsSection: document.getElementById('statsSection'),
+            statsToggle: document.getElementById('statsToggle'),
+            statsContent: document.getElementById('statsContent'),
+            statsToggleStreak: document.getElementById('statsToggleStreak'),
+            statTotalTime: document.getElementById('statTotalTime'),
+            statSessions: document.getElementById('statSessions'),
+            statCurrentStreak: document.getElementById('statCurrentStreak'),
+            statLongestStreak: document.getElementById('statLongestStreak'),
+            statsUserName: document.getElementById('statsUserName'),
+            statsWeek: document.getElementById('statsWeek'),
+            signOutBtn: document.getElementById('signOutBtn')
         };
     }
 
@@ -700,6 +1149,32 @@ class UIController {
                 }
             }
         });
+
+        // Auth toggle click
+        if (this.elements.authToggle) {
+            this.elements.authToggle.addEventListener('click', () => {
+                if (this.authManager.isSignedIn()) {
+                    // Toggle stats panel visibility
+                    this.toggleStatsPanel();
+                } else {
+                    this.handleSignIn();
+                }
+            });
+        }
+
+        // Stats toggle (expand/collapse)
+        if (this.elements.statsToggle) {
+            this.elements.statsToggle.addEventListener('click', () => {
+                this.toggleStatsContent();
+            });
+        }
+
+        // Sign out button
+        if (this.elements.signOutBtn) {
+            this.elements.signOutBtn.addEventListener('click', () => {
+                this.handleSignOut();
+            });
+        }
     }
 
     async loadFeaturedArticle() {
@@ -1336,6 +1811,174 @@ class UIController {
         this.elements.pauseBtn.textContent = 'Pause';
         this.stopTimer();
         this.elements.progressInfo.textContent = 'Practice complete!';
+
+        // Record session stats
+        if (this.engine) {
+            const elapsedMs = this.engine.getElapsedTime();
+            const durationSeconds = Math.floor(elapsedMs / 1000);
+            const articleTitle = this.articleContent ? this.articleContent.title : 'Unknown';
+
+            // Only record if session was at least 60 seconds (1 minute)
+            if (durationSeconds >= 60) {
+                this.statsManager.recordSession(durationSeconds, articleTitle);
+                this.updateStatsDisplay();
+            }
+        }
+    }
+
+    // Handle auth state changes
+    onAuthStateChange(user) {
+        if (!this.elements.authToggle) return;
+
+        if (user) {
+            // User signed in
+            if (user.photoURL) {
+                // Show avatar image
+                if (this.elements.authIcon) {
+                    this.elements.authIcon.classList.add('hidden');
+                }
+                if (this.elements.authAvatar) {
+                    this.elements.authAvatar.classList.remove('hidden');
+                    this.elements.authAvatar.src = user.photoURL;
+                    // Fallback to initial if image fails to load
+                    this.elements.authAvatar.onerror = () => {
+                        this.elements.authAvatar.classList.add('hidden');
+                        if (this.elements.authIcon) {
+                            this.elements.authIcon.textContent = this.authManager.getUserInitial() || '👤';
+                            this.elements.authIcon.classList.remove('hidden');
+                        }
+                    };
+                }
+            } else {
+                // No photo URL, show initial
+                if (this.elements.authAvatar) {
+                    this.elements.authAvatar.classList.add('hidden');
+                }
+                if (this.elements.authIcon) {
+                    this.elements.authIcon.textContent = this.authManager.getUserInitial() || '👤';
+                    this.elements.authIcon.classList.remove('hidden');
+                }
+            }
+            this.elements.authToggle.setAttribute('aria-label', `Signed in as ${user.displayName}. Click to view stats.`);
+
+            // Hide the hint text when signed in
+            if (this.elements.authHint) {
+                this.elements.authHint.classList.add('hidden');
+            }
+
+            // Show stats section
+            if (this.elements.statsSection) {
+                this.elements.statsSection.classList.remove('hidden');
+            }
+
+            // Sync stats from cloud
+            this.statsManager.syncOnSignIn().then(() => {
+                this.updateStatsDisplay();
+            });
+
+            // Update user name in stats footer
+            if (this.elements.statsUserName) {
+                this.elements.statsUserName.textContent = `Signed in as ${user.displayName}`;
+            }
+        } else {
+            // User signed out
+            if (this.elements.authIcon) {
+                this.elements.authIcon.classList.remove('hidden');
+            }
+            if (this.elements.authAvatar) {
+                this.elements.authAvatar.classList.add('hidden');
+                this.elements.authAvatar.src = '';
+            }
+            this.elements.authToggle.setAttribute('aria-label', 'Sign in with Google');
+
+            // Show the hint text when signed out
+            if (this.elements.authHint) {
+                this.elements.authHint.classList.remove('hidden');
+            }
+
+            // Hide stats section
+            if (this.elements.statsSection) {
+                this.elements.statsSection.classList.add('hidden');
+            }
+        }
+    }
+
+    async handleSignIn() {
+        try {
+            await this.authManager.signIn();
+        } catch (error) {
+            console.error('Sign-in failed:', error);
+        }
+    }
+
+    async handleSignOut() {
+        try {
+            await this.authManager.signOut();
+        } catch (error) {
+            console.error('Sign-out failed:', error);
+        }
+    }
+
+    toggleStatsPanel() {
+        if (this.elements.statsSection) {
+            this.elements.statsSection.classList.toggle('hidden');
+        }
+    }
+
+    toggleStatsContent() {
+        if (this.elements.statsContent) {
+            const isHidden = this.elements.statsContent.classList.toggle('hidden');
+            if (this.elements.statsToggle) {
+                this.elements.statsToggle.setAttribute('aria-expanded', !isHidden);
+            }
+        }
+    }
+
+    updateStatsDisplay() {
+        const stats = this.statsManager.getFormattedStats();
+
+        if (this.elements.statTotalTime) {
+            this.elements.statTotalTime.textContent = stats.totalTime;
+        }
+        if (this.elements.statSessions) {
+            this.elements.statSessions.textContent = stats.sessionsCompleted;
+        }
+        if (this.elements.statCurrentStreak) {
+            this.elements.statCurrentStreak.textContent = stats.currentStreak > 0 ? `${stats.currentStreak} 🔥` : '0';
+        }
+        if (this.elements.statLongestStreak) {
+            this.elements.statLongestStreak.textContent = stats.longestStreak;
+        }
+
+        // Update streak badge in toggle
+        if (this.elements.statsToggleStreak) {
+            if (stats.currentStreak > 0) {
+                this.elements.statsToggleStreak.textContent = `${stats.currentStreak} day streak 🔥`;
+            } else {
+                this.elements.statsToggleStreak.textContent = 'Start your streak!';
+            }
+        }
+
+        // Update 7-day visualization
+        this.updateWeekVisualization();
+    }
+
+    updateWeekVisualization() {
+        if (!this.elements.statsWeek) return;
+
+        const week = this.statsManager.getWeekVisualization();
+        this.elements.statsWeek.innerHTML = '';
+
+        week.forEach(day => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'stats-week-day' + (day.practiced ? ' practiced' : '');
+            dayEl.innerHTML = `
+                <span class="day-dot">${day.practiced ? '●' : '○'}</span>
+                <span class="day-label">${day.dayName}</span>
+            `;
+            dayEl.title = day.date + (day.practiced ? ' - Practiced!' : '');
+            this.elements.statsWeek.appendChild(dayEl);
+        });
     }
 
     showLoading(show, message = 'Loading article...') {

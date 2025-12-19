@@ -20,6 +20,18 @@ const WIKI_API_PATTERNS = [
     /^https:\/\/en\.wikipedia\.org\/w\/api\.php/
 ];
 
+// Firebase patterns to bypass (never cache auth/Firestore requests)
+const FIREBASE_PATTERNS = [
+    /^https:\/\/.*\.googleapis\.com\//,
+    /^https:\/\/.*\.firebaseio\.com\//,
+    /^https:\/\/firestore\.googleapis\.com\//,
+    /^https:\/\/identitytoolkit\.googleapis\.com\//,
+    /^https:\/\/securetoken\.googleapis\.com\//,
+    /^https:\/\/apis\.google\.com\//,
+    /^https:\/\/www\.gstatic\.com\/firebasejs\//,
+    /^https:\/\/.*\.firebaseapp\.com\//
+];
+
 // Cache durations
 const CACHE_DURATIONS = {
     static: 7 * 24 * 60 * 60 * 1000,      // 7 days for static assets
@@ -73,6 +85,11 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Bypass Firebase requests - let them go directly to network
+    if (isFirebaseRequest(url.href)) {
+        return; // Don't intercept, let browser handle normally
+    }
+
     // Determine caching strategy based on URL
     if (isWikipediaAPI(url.href)) {
         // Wikipedia API: Stale-while-revalidate for speed + freshness
@@ -85,6 +102,11 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(handleDefault(request));
     }
 });
+
+// Check if URL is a Firebase request (should bypass caching)
+function isFirebaseRequest(url) {
+    return FIREBASE_PATTERNS.some((pattern) => pattern.test(url));
+}
 
 // Check if URL is a Wikipedia API request
 function isWikipediaAPI(url) {

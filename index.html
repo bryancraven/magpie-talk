@@ -57,8 +57,33 @@
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://api.wikimedia.org">
     <link rel="dns-prefetch" href="https://en.wikipedia.org">
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://apis.google.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDK (compat for CDN simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMBh6lsa4Fm_rXmyyOWwDxSkKaTki8vvc",
+            authDomain: "magpie-talk.firebaseapp.com",
+            projectId: "magpie-talk",
+            storageBucket: "magpie-talk.firebasestorage.app",
+            messagingSenderId: "974959011662",
+            appId: "1:974959011662:web:11ce94d351ef1d9edea01f"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        // Enable Firestore offline persistence
+        firebase.firestore().enablePersistence().catch((err) => {
+            console.warn('Firestore persistence error:', err.code);
+        });
+    </script>
+
     <script>
         // Prevent flash of unstyled content by setting theme, font size, and mesh mode early
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -92,6 +117,11 @@
                 </button>
                 <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
                     <span class="theme-icon">🌙</span>
+                </button>
+                <span id="authHint" class="auth-hint">Sign in to track progress</span>
+                <button id="authToggle" class="auth-toggle" aria-label="Sign in with Google">
+                    <span class="auth-icon">👤</span>
+                    <img class="auth-avatar hidden" alt="User avatar" referrerpolicy="no-referrer" />
                 </button>
             </div>
         </header>
@@ -210,6 +240,41 @@
 
         <!-- Progress Indicator -->
         <div class="progress-info" id="progressInfo" role="status" aria-live="polite" aria-atomic="true"></div>
+
+        <!-- Practice Stats Section (visible when signed in) -->
+        <section id="statsSection" class="stats-section hidden">
+            <button id="statsToggle" class="stats-toggle" aria-expanded="false" aria-controls="statsContent">
+                <span class="stats-toggle-text">Your Practice</span>
+                <span class="stats-toggle-streak" id="statsToggleStreak"></span>
+            </button>
+            <div id="statsContent" class="stats-content hidden">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalTime">0m</div>
+                        <div class="stat-label">Total Practice</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statSessions">0</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statCurrentStreak">0</div>
+                        <div class="stat-label">Current Streak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statLongestStreak">0</div>
+                        <div class="stat-label">Best Streak</div>
+                    </div>
+                </div>
+                <div class="stats-week" id="statsWeek">
+                    <!-- 7-day visualization rendered dynamically -->
+                </div>
+                <div class="stats-footer">
+                    <span class="stats-user-name" id="statsUserName"></span>
+                    <button id="signOutBtn" class="btn btn-secondary btn-small">Sign Out</button>
+                </div>
+            </div>
+        </section>
 
         <!-- Footer Disclaimer -->
         <footer class="footer-disclaimer">
