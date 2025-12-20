@@ -1363,6 +1363,9 @@ class UIController {
     }
 
     async displayArticle(article) {
+        // Record current session before loading new article (if practiced for 1+ minute)
+        this.recordCurrentSession();
+
         // Stop any active practice and timer before loading new article
         if (this.engine) {
             this.engine.stop();
@@ -1618,6 +1621,9 @@ class UIController {
     resetPractice() {
         if (!this.engine) return;
 
+        // Record session before resetting (if practiced for 1+ minute)
+        this.recordCurrentSession();
+
         this.engine.reset();
         this.elements.startBtn.disabled = false;
         this.elements.pauseBtn.disabled = true;
@@ -1813,16 +1819,22 @@ class UIController {
         this.elements.progressInfo.textContent = 'Practice complete!';
 
         // Record session stats
-        if (this.engine) {
-            const elapsedMs = this.engine.getElapsedTime();
-            const durationSeconds = Math.floor(elapsedMs / 1000);
-            const articleTitle = this.articleContent ? this.articleContent.title : 'Unknown';
+        this.recordCurrentSession();
+    }
 
-            // Only record if session was at least 60 seconds (1 minute)
-            if (durationSeconds >= 60) {
-                this.statsManager.recordSession(durationSeconds, articleTitle);
-                this.updateStatsDisplay();
-            }
+    // Record the current practice session if it meets the minimum duration
+    recordCurrentSession() {
+        if (!this.engine) return;
+
+        const elapsedMs = this.engine.getElapsedTime();
+        const durationSeconds = Math.floor(elapsedMs / 1000);
+        const articleTitle = this.articleContent ? this.articleContent.title : 'Unknown';
+
+        // Only record if session was at least 60 seconds (1 minute)
+        if (durationSeconds >= 60) {
+            this.statsManager.recordSession(durationSeconds, articleTitle);
+            this.updateStatsDisplay();
+            console.log(`Session recorded: ${durationSeconds} seconds on "${articleTitle}"`);
         }
     }
 
