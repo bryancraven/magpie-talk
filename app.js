@@ -1233,6 +1233,22 @@ class UIController {
                 this.closeMobileMenu();
             }
         });
+
+        // Save session when user leaves the page (best effort)
+        window.addEventListener('beforeunload', () => {
+            if (this.engine && this.engine.isPlaying) {
+                console.log('Page unloading - saving current session...');
+                this.recordCurrentSession();
+            }
+        });
+
+        // Also save on visibility change (user switches tabs)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && this.engine && this.engine.isPlaying) {
+                console.log('Tab hidden - saving current session...');
+                this.recordCurrentSession();
+            }
+        });
     }
 
     async loadFeaturedArticle() {
@@ -1429,6 +1445,7 @@ class UIController {
             this.engine.stop();
         }
         this.stopTimer();
+        this.resetRecordedSeconds(); // Reset tracker for new article
 
         // Validate article has content
         if (!article.text || article.text.trim().length === 0) {
@@ -1673,6 +1690,8 @@ class UIController {
             this.engine.pause();
             this.elements.pauseBtn.textContent = 'Resume';
             this.stopTimer();
+            // Record session on pause in case user walks away
+            this.recordCurrentSession();
         }
     }
 
@@ -1683,6 +1702,7 @@ class UIController {
         this.recordCurrentSession();
 
         this.engine.reset();
+        this.resetRecordedSeconds(); // Reset tracker for new practice session
         this.elements.startBtn.disabled = false;
         this.elements.pauseBtn.disabled = true;
         this.elements.pauseBtn.textContent = 'Pause';
@@ -1870,6 +1890,7 @@ class UIController {
     }
 
     onPracticeComplete() {
+        console.log('🎉 Practice complete - article finished!');
         this.elements.startBtn.disabled = false;
         this.elements.pauseBtn.disabled = true;
         this.elements.pauseBtn.textContent = 'Pause';
@@ -1881,6 +1902,7 @@ class UIController {
     }
 
     // Record the current practice session if it meets the minimum duration
+    // Only records the delta since last recording to avoid double-counting
     recordCurrentSession() {
         if (!this.engine) {
             console.log('recordCurrentSession: No engine, skipping');
@@ -1888,19 +1910,30 @@ class UIController {
         }
 
         const elapsedMs = this.engine.getElapsedTime();
-        const durationSeconds = Math.floor(elapsedMs / 1000);
+        const totalSeconds = Math.floor(elapsedMs / 1000);
+
+        // Calculate only the NEW time since last recording
+        const lastRecordedSeconds = this.lastRecordedSeconds || 0;
+        const durationSeconds = totalSeconds - lastRecordedSeconds;
+
         const articleTitle = this.articleContent ? this.articleContent.title : 'Unknown';
 
-        console.log(`recordCurrentSession: ${durationSeconds}s elapsed (min: 60s)`);
+        console.log(`recordCurrentSession: ${durationSeconds}s new (${totalSeconds}s total, ${lastRecordedSeconds}s already recorded, min: 60s)`);
 
-        // Only record if session was at least 60 seconds (1 minute)
+        // Only record if NEW time since last recording is at least 60 seconds
         if (durationSeconds >= 60) {
             this.statsManager.recordSession(durationSeconds, articleTitle);
             this.updateStatsDisplay();
+            this.lastRecordedSeconds = totalSeconds; // Track what we've recorded
             console.log(`✅ Session recorded: ${durationSeconds} seconds on "${articleTitle}"`);
-        } else {
-            console.log(`⏭️ Session too short (${durationSeconds}s < 60s), not recording`);
+        } else if (durationSeconds > 0) {
+            console.log(`⏭️ New time too short (${durationSeconds}s < 60s), not recording yet`);
         }
+    }
+
+    // Reset the recorded seconds tracker (called when starting new article or resetting)
+    resetRecordedSeconds() {
+        this.lastRecordedSeconds = 0;
     }
 
     // Handle auth state changes
