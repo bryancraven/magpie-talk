@@ -1866,6 +1866,9 @@ header {
         margin-bottom: 15px;
         /* Make sure stats section is visible on mobile when shown */
         display: block;
+        /* Make it stand out on mobile */
+        border: 2px solid var(--btn-primary-bg);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .stats-section.hidden {
@@ -1874,7 +1877,14 @@ header {
 
     .stats-toggle {
         padding: 14px 16px;
-        font-size: 0.9375rem;
+        font-size: 1rem;
+        font-weight: 600;
+        background-color: var(--btn-primary-bg);
+        color: white;
+    }
+
+    .stats-toggle:hover {
+        background-color: var(--btn-primary-hover);
     }
 
     .stats-grid {
@@ -1911,6 +1921,23 @@ header {
     .stats-week-day .day-label {
         font-size: 0.5625rem;
     }
+
+    /* Make auth toggle and avatar clearly visible on mobile */
+    .auth-toggle {
+        padding: 8px;
+        font-size: 1.5rem;
+    }
+
+    .auth-avatar {
+        width: 36px;
+        height: 36px;
+        border-width: 3px;
+    }
+
+    /* Header toggles layout for mobile */
+    .header-toggles {
+        gap: 12px;
+    }
 }
 
 /* Responsive - Small Mobile */
@@ -1938,20 +1965,16 @@ header {
 
     .auth-toggle {
         padding: 6px;
-        font-size: 1.25rem;
+        font-size: 1.5rem;
     }
 
     .auth-avatar {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
+        border-width: 2px;
     }
 
     .stats-week-day .day-dot {
         font-size: 0.875rem;
     }
-
-    .auth-hint {
-        display: none;
-    }
-
 }
