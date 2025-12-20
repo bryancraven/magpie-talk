@@ -1600,13 +1600,23 @@ header h1 {
     display: none;
 }
 
-/* Desktop/Mobile visibility helpers */
+/* Desktop/Mobile visibility helpers - switch at 768px (tablet/mobile breakpoint) */
 .mobile-only {
-    display: none;
+    display: none !important;
 }
 
 .desktop-only {
-    display: inline-flex;
+    display: inline-flex !important;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: inline-flex !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
 }
 
 /* Mobile Menu Toggle (hamburger) */
@@ -1852,6 +1862,21 @@ header {
 
 /* Responsive - Tablet */
 @media (max-width: 768px) {
+    .stats-section {
+        margin-bottom: 15px;
+        /* Make sure stats section is visible on mobile when shown */
+        display: block;
+    }
+
+    .stats-section.hidden {
+        display: none !important;
+    }
+
+    .stats-toggle {
+        padding: 14px 16px;
+        font-size: 0.9375rem;
+    }
+
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 10px;
@@ -1929,21 +1954,4 @@ header {
         display: none;
     }
 
-    /* Show hamburger menu, hide desktop toggles on mobile */
-    .mobile-only {
-        display: inline-flex;
-    }
-
-    .desktop-only {
-        display: none;
-    }
-
-    /* Ensure stats section is visible on mobile */
-    .stats-section {
-        display: block;
-    }
-
-    .stats-section.hidden {
-        display: none;
-    }
 }

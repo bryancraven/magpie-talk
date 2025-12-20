@@ -768,10 +768,19 @@ class StatsManager {
 
         // Save locally immediately
         this.saveLocalStats();
+        console.log('Session recorded locally:', {
+            totalPracticeSeconds: this.localStats.totalPracticeSeconds,
+            sessionsCompleted: this.localStats.sessionsCompleted,
+            currentStreak: this.localStats.currentStreak,
+            lastPracticeDate: this.localStats.lastPracticeDate
+        });
 
         // Debounced save to cloud if signed in
         if (this.authManager.isSignedIn()) {
+            console.log('User signed in, scheduling cloud save...');
             this.debouncedCloudSave();
+        } else {
+            console.log('User not signed in, stats only saved locally');
         }
     }
 
@@ -1873,17 +1882,24 @@ class UIController {
 
     // Record the current practice session if it meets the minimum duration
     recordCurrentSession() {
-        if (!this.engine) return;
+        if (!this.engine) {
+            console.log('recordCurrentSession: No engine, skipping');
+            return;
+        }
 
         const elapsedMs = this.engine.getElapsedTime();
         const durationSeconds = Math.floor(elapsedMs / 1000);
         const articleTitle = this.articleContent ? this.articleContent.title : 'Unknown';
 
+        console.log(`recordCurrentSession: ${durationSeconds}s elapsed (min: 60s)`);
+
         // Only record if session was at least 60 seconds (1 minute)
         if (durationSeconds >= 60) {
             this.statsManager.recordSession(durationSeconds, articleTitle);
             this.updateStatsDisplay();
-            console.log(`Session recorded: ${durationSeconds} seconds on "${articleTitle}"`);
+            console.log(`✅ Session recorded: ${durationSeconds} seconds on "${articleTitle}"`);
+        } else {
+            console.log(`⏭️ Session too short (${durationSeconds}s < 60s), not recording`);
         }
     }
 
@@ -1930,11 +1946,23 @@ class UIController {
             // Show stats section
             if (this.elements.statsSection) {
                 this.elements.statsSection.classList.remove('hidden');
+                console.log('Stats section shown for user:', user.displayName);
+            }
+
+            // Auto-expand stats content on mobile for better visibility
+            if (window.innerWidth <= 768 && this.elements.statsContent) {
+                this.elements.statsContent.classList.remove('hidden');
+                if (this.elements.statsToggle) {
+                    this.elements.statsToggle.setAttribute('aria-expanded', 'true');
+                }
             }
 
             // Sync stats from cloud
             this.statsManager.syncOnSignIn().then(() => {
                 this.updateStatsDisplay();
+                console.log('Stats synced and display updated');
+            }).catch(error => {
+                console.error('Stats sync failed:', error);
             });
 
             // Update user name in stats footer
