@@ -112,16 +112,36 @@
                 </div>
             </div>
             <div class="header-toggles">
-                <button id="meshToggle" class="mesh-toggle" aria-label="Toggle mesh gradient mode">
+                <!-- Desktop: show all toggles inline -->
+                <button id="meshToggle" class="mesh-toggle desktop-only" aria-label="Toggle mesh gradient mode">
                     <span class="mesh-icon">✨</span>
                 </button>
-                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                <button id="themeToggle" class="theme-toggle desktop-only" aria-label="Toggle dark mode">
                     <span class="theme-icon">🌙</span>
                 </button>
                 <span id="authHint" class="auth-hint">Sign in to track progress</span>
                 <button id="authToggle" class="auth-toggle" aria-label="Sign in with Google">
                     <span class="auth-icon">👤</span>
                     <img class="auth-avatar hidden" alt="User avatar" referrerpolicy="no-referrer" />
+                </button>
+                <!-- Mobile: hamburger menu -->
+                <button id="mobileMenuToggle" class="mobile-menu-toggle mobile-only" aria-label="Open menu">
+                    <span>☰</span>
+                </button>
+            </div>
+            <!-- Mobile dropdown menu -->
+            <div id="mobileMenu" class="mobile-menu hidden">
+                <button id="mobileThemeToggle" class="mobile-menu-item" aria-label="Toggle dark mode">
+                    <span class="mobile-menu-icon theme-icon">🌙</span>
+                    <span>Toggle Theme</span>
+                </button>
+                <button id="mobileMeshToggle" class="mobile-menu-item" aria-label="Toggle mesh mode">
+                    <span class="mobile-menu-icon mesh-icon">✨</span>
+                    <span>Toggle Effects</span>
+                </button>
+                <button id="mobileSignOutBtn" class="mobile-menu-item mobile-signout hidden" aria-label="Sign out">
+                    <span class="mobile-menu-icon">🚪</span>
+                    <span>Sign Out</span>
                 </button>
             </div>
         </header>

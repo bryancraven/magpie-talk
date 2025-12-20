@@ -466,10 +466,10 @@ class ThemeManager {
     }
 
     updateThemeIcon() {
-        const icon = document.querySelector('.theme-icon');
-        if (icon) {
+        const icons = document.querySelectorAll('.theme-icon');
+        icons.forEach(icon => {
             icon.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
-        }
+        });
     }
 }
 
@@ -517,11 +517,11 @@ class MeshModeManager {
     }
 
     updateMeshIcon() {
-        const icon = document.querySelector('.mesh-icon');
-        const btn = document.getElementById('meshToggle');
-        if (icon) {
+        const icons = document.querySelectorAll('.mesh-icon');
+        icons.forEach(icon => {
             icon.textContent = this.currentMode === 'on' ? '✨' : '⭐';
-        }
+        });
+        const btn = document.getElementById('meshToggle');
         if (btn) {
             btn.setAttribute('aria-pressed', this.currentMode === 'on');
         }
@@ -1053,7 +1053,13 @@ class UIController {
             statLongestStreak: document.getElementById('statLongestStreak'),
             statsUserName: document.getElementById('statsUserName'),
             statsWeek: document.getElementById('statsWeek'),
-            signOutBtn: document.getElementById('signOutBtn')
+            signOutBtn: document.getElementById('signOutBtn'),
+            // Mobile menu elements
+            mobileMenuToggle: document.getElementById('mobileMenuToggle'),
+            mobileMenu: document.getElementById('mobileMenu'),
+            mobileThemeToggle: document.getElementById('mobileThemeToggle'),
+            mobileMeshToggle: document.getElementById('mobileMeshToggle'),
+            mobileSignOutBtn: document.getElementById('mobileSignOutBtn')
         };
     }
 
@@ -1175,6 +1181,49 @@ class UIController {
                 this.handleSignOut();
             });
         }
+
+        // Mobile menu toggle
+        if (this.elements.mobileMenuToggle) {
+            this.elements.mobileMenuToggle.addEventListener('click', () => {
+                this.toggleMobileMenu();
+            });
+        }
+
+        // Mobile theme toggle
+        if (this.elements.mobileThemeToggle) {
+            this.elements.mobileThemeToggle.addEventListener('click', () => {
+                this.themeManager.toggle();
+                this.updateMobileMenuIcons();
+                this.closeMobileMenu();
+            });
+        }
+
+        // Mobile mesh toggle
+        if (this.elements.mobileMeshToggle) {
+            this.elements.mobileMeshToggle.addEventListener('click', () => {
+                this.meshModeManager.toggle();
+                this.updateMobileMenuIcons();
+                this.closeMobileMenu();
+            });
+        }
+
+        // Mobile sign out button
+        if (this.elements.mobileSignOutBtn) {
+            this.elements.mobileSignOutBtn.addEventListener('click', () => {
+                this.handleSignOut();
+                this.closeMobileMenu();
+            });
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.elements.mobileMenu &&
+                !this.elements.mobileMenu.classList.contains('hidden') &&
+                !this.elements.mobileMenu.contains(e.target) &&
+                !this.elements.mobileMenuToggle.contains(e.target)) {
+                this.closeMobileMenu();
+            }
+        });
     }
 
     async loadFeaturedArticle() {
@@ -1892,6 +1941,11 @@ class UIController {
             if (this.elements.statsUserName) {
                 this.elements.statsUserName.textContent = `Signed in as ${user.displayName}`;
             }
+
+            // Show mobile sign out button
+            if (this.elements.mobileSignOutBtn) {
+                this.elements.mobileSignOutBtn.classList.remove('hidden');
+            }
         } else {
             // User signed out
             if (this.elements.authIcon) {
@@ -1911,6 +1965,11 @@ class UIController {
             // Hide stats section
             if (this.elements.statsSection) {
                 this.elements.statsSection.classList.add('hidden');
+            }
+
+            // Hide mobile sign out button
+            if (this.elements.mobileSignOutBtn) {
+                this.elements.mobileSignOutBtn.classList.add('hidden');
             }
         }
     }
@@ -1991,6 +2050,33 @@ class UIController {
             dayEl.title = day.date + (day.practiced ? ' - Practiced!' : '');
             this.elements.statsWeek.appendChild(dayEl);
         });
+    }
+
+    // Mobile menu helpers
+    toggleMobileMenu() {
+        if (this.elements.mobileMenu) {
+            this.elements.mobileMenu.classList.toggle('hidden');
+        }
+    }
+
+    closeMobileMenu() {
+        if (this.elements.mobileMenu) {
+            this.elements.mobileMenu.classList.add('hidden');
+        }
+    }
+
+    updateMobileMenuIcons() {
+        // Update theme icon in mobile menu
+        const mobileThemeIcon = this.elements.mobileThemeToggle?.querySelector('.theme-icon');
+        if (mobileThemeIcon) {
+            mobileThemeIcon.textContent = this.themeManager.currentTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Update mesh icon in mobile menu
+        const mobileMeshIcon = this.elements.mobileMeshToggle?.querySelector('.mesh-icon');
+        if (mobileMeshIcon) {
+            mobileMeshIcon.textContent = this.meshModeManager.currentMode === 'on' ? '✨' : '✧';
+        }
     }
 
     showLoading(show, message = 'Loading article...') {
