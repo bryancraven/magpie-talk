@@ -2,11 +2,21 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { Dashboard } from '@/components/lobby/Dashboard';
 import { Studio } from '@/components/studio/Studio';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { Stats } from '@/components/Stats';
+import { Settings } from '@/components/Settings';
+import { Button } from '@/components/ui/button';
 import { usePlayerStore } from '@/stores/player';
+import { useAuthStore } from '@/stores/auth';
+import { useStatsStore } from '@/stores/stats';
+import { useSettingsStore } from '@/stores/settings';
 import { getFeaturedArticle, getArticleByTitle, extractTitleFromUrl } from '@/lib/wikipedia';
 import { splitText } from '@/lib/syllabizer';
+import { onAuthStateChange, signInWithGoogle, signOutUser } from '@/lib/firebase';
 
 type View = 'lobby' | 'studio';
 
@@ -15,8 +25,40 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastArticleTitle, setLastArticleTitle] = useState<string | undefined>();
+  const [showStats, setShowStats] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const { setArticle, article, getProgress } = usePlayerStore();
+  const { setArticle, article, getProgress, state: playerState, elapsedMs, reset: resetPlayer } = usePlayerStore();
+  const { setUser, user, isSignedIn, setLoading: setAuthLoading } = useAuthStore();
+  const { recordSession } = useStatsStore();
+  const { syllableDurationMs, targetDurationMinutes } = useSettingsStore();
+
+  // Initialize Firebase auth listener
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    const initAuth = async () => {
+      unsubscribe = await onAuthStateChange((firebaseUser) => {
+        if (firebaseUser) {
+          setUser({
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName,
+            email: firebaseUser.email,
+            photoURL: firebaseUser.photoURL,
+          });
+        } else {
+          setUser(null);
+        }
+        setAuthLoading(false);
+      });
+    };
+
+    initAuth();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [setUser, setAuthLoading]);
 
   // Load last article title from localStorage on mount
   useEffect(() => {
@@ -27,6 +69,27 @@ export default function Home() {
       }
     }
   }, []);
+
+  // Record session when navigating away or completing
+  useEffect(() => {
+    if (playerState === 'complete' && article) {
+      const durationSeconds = Math.floor(elapsedMs / 1000);
+      if (durationSeconds >= 60) {
+        recordSession(durationSeconds, article.title);
+      }
+    }
+  }, [playerState, elapsedMs, article, recordSession]);
+
+  // Sync syllable duration with player store
+  useEffect(() => {
+    const bpm = Math.round(60000 / syllableDurationMs);
+    usePlayerStore.getState().setBpm(bpm);
+  }, [syllableDurationMs]);
+
+  // Sync target duration with player store
+  useEffect(() => {
+    usePlayerStore.getState().setTargetDuration(targetDurationMinutes);
+  }, [targetDurationMinutes]);
 
   const loadArticle = useCallback(async (fetchFn: () => Promise<{ title: string; text: string; url: string }>) => {
     setIsLoading(true);
@@ -69,7 +132,30 @@ export default function Home() {
   }, [loadArticle]);
 
   const handleBack = useCallback(() => {
+    // Record session if practiced for at least 60 seconds
+    if (article && elapsedMs >= 60000) {
+      const durationSeconds = Math.floor(elapsedMs / 1000);
+      recordSession(durationSeconds, article.title);
+    }
+    resetPlayer();
     setView('lobby');
+  }, [article, elapsedMs, recordSession, resetPlayer]);
+
+  const handleSignIn = useCallback(async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign in failed:', err);
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOutUser();
+      setShowStats(false);
+    } catch (err) {
+      console.error('Sign out failed:', err);
+    }
   }, []);
 
   const progress = article ? getProgress() : undefined;
@@ -84,14 +170,36 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
+            className="flex min-h-screen flex-col"
           >
-            <Dashboard
-              onLoadFeatured={handleLoadFeatured}
-              onLoadArticle={handleLoadArticle}
-              isLoading={isLoading}
-              lastArticleTitle={lastArticleTitle}
-              lastProgress={progress?.percentage}
+            <Header
+              onSignIn={handleSignIn}
+              onSignOut={handleSignOut}
+              onShowStats={() => setShowStats(true)}
             />
+
+            {/* Settings button (floating) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettings(true)}
+              className="fixed bottom-4 right-4 z-30 h-12 w-12 rounded-full bg-zinc-800/80 text-zinc-400 shadow-lg backdrop-blur-sm hover:bg-zinc-700 hover:text-zinc-100"
+              aria-label="Settings"
+            >
+              <SettingsIcon className="h-5 w-5" />
+            </Button>
+
+            <div className="flex-1">
+              <Dashboard
+                onLoadFeatured={handleLoadFeatured}
+                onLoadArticle={handleLoadArticle}
+                isLoading={isLoading}
+                lastArticleTitle={lastArticleTitle}
+                lastProgress={progress?.percentage}
+              />
+            </div>
+
+            <Footer />
           </motion.div>
         ) : (
           <motion.div
@@ -103,6 +211,20 @@ export default function Home() {
           >
             <Studio onBack={handleBack} />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Stats modal */}
+      <AnimatePresence>
+        {showStats && isSignedIn() && (
+          <Stats onClose={() => setShowStats(false)} onSignOut={handleSignOut} />
+        )}
+      </AnimatePresence>
+
+      {/* Settings modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <Settings onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
 

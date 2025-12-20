@@ -157,3 +157,102 @@
     @apply bg-zinc-900/30 backdrop-blur-md border border-white/5;
   }
 }
+
+/* Font size scaling */
+:root[data-font-size="small"] {
+  --font-scale: 0.85;
+}
+
+:root[data-font-size="medium"] {
+  --font-scale: 1;
+}
+
+:root[data-font-size="large"] {
+  --font-scale: 1.2;
+}
+
+:root[data-font-size="xlarge"] {
+  --font-scale: 1.4;
+}
+
+/* Apply font scale to article text */
+.article-text {
+  font-size: calc(1rem * var(--font-scale, 1));
+}
+
+/* Mesh mode - animated gradient background */
+:root[data-mesh-mode="on"] {
+  --mesh-bg: linear-gradient(
+    135deg,
+    oklch(0.12 0.02 280) 0%,
+    oklch(0.10 0.015 300) 25%,
+    oklch(0.11 0.025 260) 50%,
+    oklch(0.09 0.02 290) 75%,
+    oklch(0.12 0.015 270) 100%
+  );
+}
+
+:root[data-mesh-mode="on"].light {
+  --mesh-bg: linear-gradient(
+    135deg,
+    oklch(0.95 0.02 280) 0%,
+    oklch(0.93 0.025 300) 25%,
+    oklch(0.96 0.02 260) 50%,
+    oklch(0.94 0.015 290) 75%,
+    oklch(0.95 0.02 270) 100%
+  );
+}
+
+:root[data-mesh-mode="on"] body {
+  background: var(--mesh-bg);
+  background-size: 400% 400%;
+  animation: mesh-shift 15s ease infinite;
+}
+
+@keyframes mesh-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glassmorphism for cards in mesh mode */
+:root[data-mesh-mode="on"] .glass,
+:root[data-mesh-mode="on"] [class*="rounded-3xl"][class*="border"] {
+  background: oklch(0.13 0.005 285 / 60%);
+  backdrop-filter: blur(20px);
+  border-color: oklch(1 0 0 / 15%);
+  box-shadow:
+    0 4px 30px oklch(0 0 0 / 10%),
+    inset 0 1px 0 oklch(1 0 0 / 5%);
+}
+
+:root[data-mesh-mode="on"].light .glass,
+:root[data-mesh-mode="on"].light [class*="rounded-3xl"][class*="border"] {
+  background: oklch(1 0 0 / 70%);
+  border-color: oklch(0.5 0 0 / 10%);
+}
+
+/* Light mode specific overrides */
+.light {
+  color-scheme: light;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: oklch(0.7 0 0);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.6 0 0);
+}
+
+/* Selection color */
+::selection {
+  background: oklch(0.585 0.233 264 / 30%);
+}
+
+.light ::selection {
+  background: oklch(0.585 0.233 264 / 20%);
+}
